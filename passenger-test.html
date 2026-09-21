@@ -3,284 +3,430 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Geotab Video REST API Test</title>
+<title>Control de Eventos de Cámara y Pasajeros</title>
 </head>
 <body style="margin:0;padding:0;background:transparent;">
 <style>
-  #vapi-wrap {
-    --ink:#1a1a2e; --ink-mid:#4a4a6a; --border:#e2e2ee; --accent:#3d5af1;
-    --ok:#1a9e6e; --danger:#dc2626; --surface:#f7f7fb;
-    font-family:'Inter',system-ui,-apple-system,sans-serif; font-size:14px; color:var(--ink);
-    padding:20px 24px; max-width:1100px;
+  #gt-addin {
+    --ink: #1e293b;
+    --ink-light: #64748b;
+    --border: #e2e8f0;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --ok: #16a34a;
+    --ok-bg: #dcfce7;
+    --danger: #dc2626;
+    --danger-bg: #fee2e2;
+    --surface: #f8fafc;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    padding: 20px;
+    max-width: 1200px;
   }
-  #vapi-wrap * { box-sizing:border-box; }
-  #vapi-wrap h1 { font-size:16px; margin:0 0 16px; }
-  .vapi-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:18px;
-    background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
-  .vapi-field { display:flex; flex-direction:column; gap:4px; }
-  .vapi-field label { font-size:11px; font-weight:600; color:var(--ink-mid); text-transform:uppercase; }
-  .vapi-field select, .vapi-field input {
-    height:32px; border:1px solid #c8c8e0; border-radius:6px; padding:0 8px; font-size:13px; min-width:180px;
+  #gt-addin * { box-sizing: border-box; }
+  
+  .gt-header {
+    margin-bottom: 20px;
   }
-  .vapi-btn {
-    height:32px; padding:0 16px; border-radius:6px; border:1px solid var(--accent);
-    background:var(--accent); color:#fff; font-weight:600; font-size:13px; cursor:pointer;
+  .gt-header h1 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--ink);
   }
-  .vapi-btn:disabled { opacity:.5; cursor:not-allowed; }
-  .vapi-summary { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
-  .vapi-metric { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 16px; min-width:140px; }
-  .vapi-metric .lbl { font-size:11px; color:var(--ink-mid); text-transform:uppercase; font-weight:600; }
-  .vapi-metric .val { font-size:20px; font-weight:700; }
-  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
-  th, td { padding:8px 12px; text-align:left; font-size:12px; border-bottom:1px solid var(--border); }
-  th { background:var(--surface); font-weight:700; text-transform:uppercase; font-size:10px; color:var(--ink-mid); }
-  .pill { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
-  .pill-ok { background:#e0f5ed; color:var(--ok); }
-  .pill-danger { background:#fee2e2; color:var(--danger); }
-  .vapi-link { color:var(--accent); text-decoration:none; font-weight:600; font-size:11px; cursor:pointer; }
-  .vapi-state { padding:30px; text-align:center; color:var(--ink-mid); font-size:13px; }
-  .vapi-log { font-family:monospace; font-size:11px; color:var(--ink-mid); white-space:pre-wrap;
-    background:var(--surface); border-radius:6px; padding:10px; margin-top:10px; max-height:350px; overflow:auto; }
+  .gt-header p {
+    margin: 0;
+    color: var(--ink-light);
+    font-size: 12px;
+  }
+
+  .gt-filter-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .gt-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 180px;
+  }
+  .gt-field label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .gt-field select, .gt-field input {
+    height: 36px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 0 10px;
+    font-size: 13px;
+    outline: none;
+    background: #fff;
+  }
+  .gt-field select:focus, .gt-field input:focus {
+    border-color: var(--accent);
+  }
+  
+  .gt-btn {
+    height: 36px;
+    padding: 0 20px;
+    border-radius: 6px;
+    border: none;
+    background: var(--accent);
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .gt-btn:hover { background: var(--accent-hover); }
+  .gt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .gt-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .gt-card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .gt-card .lbl { font-size: 11px; font-weight: 600; color: var(--ink-light); text-transform: uppercase; }
+  .gt-card .val { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+  .gt-table-container {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; text-align: left; }
+  th, td { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  th { background: var(--surface); font-weight: 600; color: var(--ink-light); text-transform: uppercase; font-size: 10px; }
+  tr:last-child td { border-bottom: none; }
+  
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .pill-ok { background: var(--ok-bg); color: var(--ok); }
+  .pill-danger { background: var(--danger-bg); color: var(--danger); }
+  
+  .gt-link { color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; }
+  .gt-link:hover { text-decoration: underline; }
+  .gt-empty { padding: 40px; text-align: center; color: var(--ink-light); }
+  
+  .gt-log {
+    margin-top: 20px;
+    padding: 12px;
+    background: #0f172a;
+    color: #38bdf8;
+    font-family: monospace;
+    font-size: 11px;
+    border-radius: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
 </style>
 
-<div id="vapi-wrap">
-  <h1>Diagnóstico: Geotab Video REST API Client</h1>
+<div id="gt-addin">
+  <div class="gt-header">
+    <h1>Informe de Infracciones de Cámara y Pasajeros</h1>
+    <p>Cruce de viajes con reglas de visión artificial y grabaciones asociadas</p>
+  </div>
 
-  <div class="vapi-bar">
-    <div class="vapi-field">
+  <div class="gt-filter-bar">
+    <div class="gt-field">
       <label>Vehículo</label>
-      <select id="vapiDevice"><option value="">Cargando vehículos…</option></select>
+      <select id="selDevice"><option value="">Cargando vehículos…</option></select>
     </div>
-    <div class="vapi-field">
+    <div class="gt-field">
+      <label>Filtro de Regla</label>
+      <select id="selRule"><option value="ALL">Cargando reglas…</option></select>
+    </div>
+    <div class="gt-field">
       <label>Desde</label>
-      <input type="date" id="vapiFrom"/>
+      <input type="date" id="inpFrom"/>
     </div>
-    <div class="vapi-field">
+    <div class="gt-field">
       <label>Hasta</label>
-      <input type="date" id="vapiTo"/>
+      <input type="date" id="inpTo"/>
     </div>
-    <button class="vapi-btn" id="vapiRun" disabled>Consultar Video API</button>
+    <button class="gt-btn" id="btnConsult" disabled>Buscar</button>
   </div>
 
-  <div id="vapiResults">
-    <div class="vapi-state">Selecciona vehículo y rango de fechas para iniciar el análisis REST.</div>
+  <div id="gtResults">
+    <div class="gt-empty">Selecciona vehículo, regla y rango de fechas para consultar.</div>
   </div>
 
-  <div id="vapiLog" class="vapi-log" style="display:none;"></div>
-  <button class="vapi-btn" id="vapiCopyLog" style="display:none;margin-top:8px;background:#fff;color:var(--accent);">Copiar log completo</button>
+  <div id="gtLog" class="gt-log" style="display:none;"></div>
 </div>
 
 <script>
 (function() {
-
     let api = null;
-    let videoBaseUrl = 'https://video.geotab.com/api/v1'; // Endpoint base por defecto del servicio de vídeo
-    let bearerToken = null;
     let devices = [];
+    let rulesMap = new Map();
 
     function log(msg) {
-        const el = document.getElementById('vapiLog');
+        const el = document.getElementById('gtLog');
         el.style.display = 'block';
-        document.getElementById('vapiCopyLog').style.display = 'inline-flex';
-        el.textContent += msg + '\n';
-        console.log('[VideoRestAPI]', msg);
+        el.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+        console.log('[PassengerAddin]', msg);
     }
 
-    function callMyGeotab(method, params) {
+    function callApi(method, params) {
         return new Promise((resolve, reject) => {
-            if (!api) return reject(new Error('API MyGeotab no inicializada'));
+            if (!api) return reject(new Error('API no inicializada'));
             api.call(method, params, resolve, reject);
         });
     }
 
-    function getMyGeotabSession() {
-        return new Promise((resolve, reject) => {
-            api.getSession((session) => {
-                if (session) resolve(session);
-                else reject(new Error('No se pudo obtener la sesión activa de MyGeotab'));
-            });
-        });
-    }
+    async function loadInitialData() {
+        // Set dates default (últimos 7 días)
+        const today = new Date();
+        const past = new Date();
+        past.setDate(today.getDate() - 7);
+        document.getElementById('inpTo').value = today.toISOString().split('T')[0];
+        document.getElementById('inpFrom').value = past.toISOString().split('T')[0];
 
-    // ── 1. Autenticación contra el Video REST API ────────────────────────
-    async function authenticateVideoApi() {
-        if (bearerToken) return bearerToken;
+        // 1. Cargar Vehículos
+        devices = await callApi('Get', { typeName: 'Device', resultsLimit: 2000 });
+        const devSel = document.getElementById('selDevice');
+        devSel.innerHTML = '<option value="">Selecciona vehículo…</option>' +
+            devices.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
 
-        log('Obteniendo credenciales de sesión de MyGeotab…');
-        const session = await getMyGeotabSession();
-
-        log(`Autenticando en Video REST API para usuario: ${session.userName} / DB: ${session.database}…`);
-
-        const authPayload = {
-            database: session.database,
-            userName: session.userName,
-            sessionId: session.sessionId,
-            server: session.server || window.location.hostname
-        };
-
+        // 2. Cargar Reglas (Destacar reglas de Cámara e Inteligencia Artificial)
         try {
-            const res = await fetch(`${videoBaseUrl}/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(authPayload)
+            const rules = await callApi('Get', { typeName: 'Rule' });
+            rulesMap.clear();
+
+            const ruleSel = document.getElementById('selRule');
+            let cameraRulesHtml = '';
+            let otherRulesHtml = '';
+
+            rules.forEach(r => {
+                rulesMap.set(r.id, r.name || 'Regla sin nombre');
+                const nameLower = (r.name || '').toLowerCase();
+                
+                const isCameraRule = nameLower.includes('pasajer') || nameLower.includes('passenger') ||
+                                     nameLower.includes('camara') || nameLower.includes('camera') ||
+                                     nameLower.includes('distrac') || nameLower.includes('fumar') ||
+                                     nameLower.includes('phone') || nameLower.includes('movil') ||
+                                     nameLower.includes('cinturon') || nameLower.includes('belt');
+
+                const optionHtml = `<option value="${r.id}">${r.name}</option>`;
+                if (isCameraRule) {
+                    cameraRulesHtml += `<option value="${r.id}">📷 ${r.name}</option>`;
+                } else {
+                    otherRulesHtml += optionHtml;
+                }
             });
 
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`Error HTTP ${res.status}: ${errText}`);
+            let fullHtml = '<option value="ALL">-- TODAS LAS REGLAS --</option>';
+            if (cameraRulesHtml) {
+                fullHtml += `<optgroup label="Reglas de Cámara / IA">${cameraRulesHtml}</optgroup>`;
+            }
+            if (otherRulesHtml) {
+                fullHtml += `<optgroup label="Otras Reglas">${otherRulesHtml}</optgroup>`;
             }
 
-            const data = await res.json();
-            bearerToken = data.token || data.accessToken || data.jwt;
-            log('--> Autenticación en Video REST API EXITOSA.');
-            return bearerToken;
+            ruleSel.innerHTML = fullHtml;
+            log(`Reglas cargadas: ${rules.length} total.`);
         } catch (e) {
-            log('--> Error autenticando en Video REST API: ' + e.message);
-            throw e;
-        }
-    }
-
-    // ── 2. Petición genérica REST con Bearer Token ───────────────────────
-    async function fetchVideoApi(endpoint, queryParams = {}) {
-        const token = await authenticateVideoApi();
-        const url = new URL(`${videoBaseUrl}${endpoint}`);
-        
-        Object.keys(queryParams).forEach(k => {
-            if (queryParams[k] !== undefined && queryParams[k] !== null) {
-                url.searchParams.append(k, queryParams[k]);
-            }
-        });
-
-        log(`GET ${url.toString()}`);
-
-        const res = await fetch(url.toString(), {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Accept': 'application/json'
-            }
-        });
-
-        if (!res.ok) {
-            const txt = await res.text();
-            throw new Error(`Video API HTTP ${res.status}: ${txt}`);
+            log('Error cargando catálogo de reglas: ' + e.message);
         }
 
-        return await res.json();
+        document.getElementById('btnConsult').disabled = false;
     }
 
-    async function loadDevices() {
-        devices = await callMyGeotab('Get', { typeName: 'Device', resultsLimit: 2000 });
-        const sel = document.getElementById('vapiDevice');
-        sel.innerHTML = '<option value="">Selecciona vehículo…</option>' +
-            devices.map(d => `<option value="${d.id}">${d.name} (${d.serialNumber || 'Sin S/N'})</option>`).join('');
-        document.getElementById('vapiRun').disabled = false;
+    async function getTrips(deviceId, fromDate, toDate) {
+        return await callApi('Get', {
+            typeName: 'Trip',
+            search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate },
+            resultsLimit: 5000
+        });
+    }
+
+    async function getExceptionEvents(deviceId, ruleId, fromDate, toDate) {
+        const search = {
+            deviceSearch: { id: deviceId },
+            fromDate: fromDate,
+            toDate: toDate
+        };
+        if (ruleId && ruleId !== 'ALL') {
+            search.ruleSearch = { id: ruleId };
+        }
+        return await callApi('Get', { typeName: 'ExceptionEvent', search: search }) || [];
+    }
+
+    async function getMediaFiles(deviceId, fromDate, toDate) {
+        try {
+            return await callApi('Get', {
+                typeName: 'MediaFile',
+                search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate }
+            }) || [];
+        } catch (e) {
+            log('MediaFile no soportado o sin permisos: ' + e.message);
+            return [];
+        }
     }
 
     function fmtDateTime(d) {
-        return new Date(d).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        if (!d) return '—';
+        return new Date(d).toLocaleString('es-ES', { 
+            day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' 
+        });
     }
 
-    async function runAnalysis() {
-        const deviceId = document.getElementById('vapiDevice').value;
-        const fromInput = document.getElementById('vapiFrom').value;
-        const toInput = document.getElementById('vapiTo').value;
+    async function executeQuery() {
+        const deviceId = document.getElementById('selDevice').value;
+        const ruleId = document.getElementById('selRule').value;
+        const fromVal = document.getElementById('inpFrom').value;
+        const toVal = document.getElementById('inpTo').value;
 
-        if (!deviceId || !fromInput || !toInput) {
-            alert('Selecciona vehículo y fechas.');
+        if (!deviceId || !fromVal || !toVal) {
+            alert('Por favor selecciona vehículo y ambas fechas.');
             return;
         }
 
-        document.getElementById('vapiLog').textContent = '';
-        document.getElementById('vapiResults').innerHTML = '<div class="vapi-state">Consultando Video REST API…</div>';
-
-        const device = devices.find(d => d.id === deviceId);
-        const fromDate = fromInput + 'T00:00:00.000Z';
-        const toDate = toInput + 'T23:59:59.999Z';
+        document.getElementById('gtResults').innerHTML = '<div class="gt-empty">Procesando datos del vehículo…</div>';
+        const fromDate = fromVal + 'T00:00:00.000Z';
+        const toDate = toVal + 'T23:59:59.999Z';
 
         try {
-            log(`=== CONSULTA REST VIDEO API PARA ${device.name} (${device.serialNumber}) ===`);
+            log(`Consultando vehículo ${deviceId} desde ${fromDate} hasta ${toDate}`);
             
-            // 1. Obtener viajes para contextualizar
-            const trips = await callMyGeotab('Get', {
-                typeName: 'Trip',
-                search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate }
-            });
-            log(`Viajes obtenidos: ${trips.length}`);
+            const [trips, exceptions, mediaFiles] = await Promise.all([
+                getTrips(deviceId, fromDate, toDate),
+                getExceptionEvents(deviceId, ruleId, fromDate, toDate),
+                getMediaFiles(deviceId, fromDate, toDate)
+            ]);
 
-            // 2. Consulta de eventos a la API REST de Vídeo
-            let cameraEvents = [];
-            try {
-                cameraEvents = await fetchVideoApi('/events', {
-                    deviceSerialNumber: device.serialNumber,
-                    fromDate: fromDate,
-                    toDate: toDate
+            log(`Resultados: ${trips.length} viajes, ${exceptions.length} infracciones, ${mediaFiles.length} archivos multimedia.`);
+
+            // Enriquecer viajes cruzando fechas de excepción
+            const enrichedTrips = trips.map(t => {
+                const tStart = new Date(t.start || t.startTime).getTime();
+                const tStop = new Date(t.stop || t.stopTime).getTime();
+
+                const tripExceptions = exceptions.filter(ex => {
+                    const exStart = new Date(ex.activeFrom).getTime();
+                    return exStart >= tStart && exStart <= tStop;
                 });
-                log(`Eventos devueltos por Video API: ${Array.isArray(cameraEvents) ? cameraEvents.length : 0}`);
-            } catch (errApi) {
-                log(`Aviso al consultar /events: ${errApi.message}`);
-                // Intentar fallback endpoint alternativo
-                try {
-                    cameraEvents = await fetchVideoApi(`/devices/${device.serialNumber}/events`, {
-                        fromDate: fromDate,
-                        toDate: toDate
-                    });
-                } catch (err2) {
-                    log(`Falló también endpoint alternativo: ${err2.message}`);
-                }
-            }
 
-            renderResults(trips, Array.isArray(cameraEvents) ? cameraEvents : []);
+                const tripMedia = mediaFiles.filter(m => {
+                    const mTime = new Date(m.dateTime || m.fromDate).getTime();
+                    return mTime >= tStart && mTime <= tStop;
+                });
+
+                return { trip: t, exceptions: tripExceptions, media: tripMedia };
+            });
+
+            renderResults(enrichedTrips, exceptions.length);
         } catch (e) {
-            log('ERROR GENERAL: ' + e.message);
-            document.getElementById('vapiResults').innerHTML =
-                `<div class="vapi-state" style="color:var(--danger);">Error: ${e.message}</div>`;
+            log('Error al ejecutar consulta: ' + e.message);
+            document.getElementById('gtResults').innerHTML = 
+                `<div class="gt-empty" style="color:var(--danger)">Error al obtener los datos: ${e.message}</div>`;
         }
     }
 
-    function renderResults(trips, cameraEvents) {
+    function renderResults(enriched, totalExceptions) {
+        const tripsWithInfraction = enriched.filter(e => e.exceptions.length > 0).length;
+        const totalTrips = enriched.length;
+
         let html = `
-        <div class="vapi-summary">
-            <div class="vapi-metric"><div class="lbl">Viajes</div><div class="val">${trips.length}</div></div>
-            <div class="vapi-metric"><div class="lbl">Eventos REST Vídeo</div><div class="val" style="color:var(--accent);">${cameraEvents.length}</div></div>
+        <div class="gt-metrics">
+            <div class="gt-card"><div class="lbl">Viajes Totales</div><div class="val">${totalTrips}</div></div>
+            <div class="gt-card"><div class="lbl">Con Infracción</div><div class="val" style="color:var(--danger);">${tripsWithInfraction}</div></div>
+            <div class="gt-card"><div class="lbl">Sin Infracción</div><div class="val" style="color:var(--ok);">${totalTrips - tripsWithInfraction}</div></div>
+            <div class="gt-card"><div class="lbl">Total Infracciones</div><div class="val" style="color:var(--accent);">${totalExceptions}</div></div>
         </div>
+        <div class="gt-table-container">
         <table>
-        <thead><tr>
-            <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Eventos Cámara Detectados</th><th>Acciones</th>
-        </tr></thead><tbody>`;
+        <thead>
+            <tr>
+                <th>Fecha / Hora Inicio</th>
+                <th>Hora Fin</th>
+                <th>Distancia</th>
+                <th>Estado</th>
+                <th>Infracciones Detectadas</th>
+                <th>Grabaciones</th>
+            </tr>
+        </thead>
+        <tbody>`;
 
-        trips.sort((a,b) => new Date(b.start || b.startTime) - new Date(a.start || a.startTime));
+        if (enriched.length === 0) {
+            html += `<tr><td colspan="6" style="text-align:center;padding:20px;">No se encontraron viajes en el periodo seleccionado.</td></tr>`;
+        } else {
+            enriched.sort((a,b) => new Date(b.trip.start || b.trip.startTime) - new Date(a.trip.start || a.trip.startTime));
 
-        trips.forEach(t => {
-            const start = t.start || t.startTime;
-            const stop = t.stop || t.stopTime;
-            const tStart = new Date(start).getTime();
-            const tStop = new Date(stop).getTime();
+            enriched.forEach(item => {
+                const t = item.trip;
+                const start = t.start || t.startTime;
+                const stop = t.stop || t.stopTime;
+                const dist = (t.distance || 0).toFixed(1);
 
-            const evsInTrip = cameraEvents.filter(ev => {
-                const evT = new Date(ev.timestamp || ev.dateTime || ev.eventStart).getTime();
-                return evT >= tStart && evT <= tStop;
+                // Conteo de reglas por tipo
+                let rulesSummary = '—';
+                if (item.exceptions.length > 0) {
+                    const ruleCounts = {};
+                    item.exceptions.forEach(ex => {
+                        const rId = ex.rule ? ex.rule.id : 'unknown';
+                        const name = rulesMap.get(rId) || rId;
+                        ruleCounts[name] = (ruleCounts[name] || 0) + 1;
+                    });
+                    rulesSummary = Object.entries(ruleCounts)
+                        .map(([rName, count]) => `<strong>${rName}</strong> (${count})`)
+                        .join(', ');
+                }
+
+                const badge = item.exceptions.length > 0
+                    ? `<span class="pill pill-danger">⚠️ ${item.exceptions.length} evento(s)</span>`
+                    : `<span class="pill pill-ok">✓ Limpio</span>`;
+
+                const mediaBtn = item.media.length > 0
+                    ? `<span class="gt-link" onclick="alert('Se encontraron ${item.media.length} archivos multimedia asociados.')">🎥 ${item.media.length} clip(s)</span>`
+                    : '<span style="color:#94a3b8;">Sin vídeo</span>';
+
+                html += `<tr>
+                    <td>${fmtDateTime(start)}</td>
+                    <td>${fmtDateTime(stop)}</td>
+                    <td>${dist} km</td>
+                    <td>${badge}</td>
+                    <td>${rulesSummary}</td>
+                    <td>${mediaBtn}</td>
+                </tr>`;
             });
+        }
 
-            const typesList = evsInTrip.map(e => e.type || e.eventType || 'Evento').join(', ');
-            const badge = evsInTrip.length > 0
-                ? `<span class="pill pill-danger">🎥 ${evsInTrip.length} (${typesList})</span>`
-                : `<span class="pill pill-ok">Sin eventos</span>`;
-
-            html += `<tr>
-                <td>${fmtDateTime(start).split(' ')[0]}</td>
-                <td>${fmtDateTime(start)}</td>
-                <td>${fmtDateTime(stop)}</td>
-                <td>${badge}</td>
-                <td>${evsInTrip.length > 0 ? `<span class="vapi-link" onclick="alert('ID Evento: ${evsInTrip[0].id}')">Ver detalle</span>` : '—'}</td>
-            </tr>`;
-        });
-
-        html += '</tbody></table>';
-        document.getElementById('vapiResults').innerHTML = html;
+        html += '</tbody></table></div>';
+        document.getElementById('gtResults').innerHTML = html;
     }
 
-    // ── Registration ───────────────────────────────────────────────────
+    // ── Registro del Add-in de Geotab ────────────────────────────────
     if (typeof geotab === 'undefined') {
         window.geotab = { addin: {} };
     }
@@ -289,16 +435,8 @@
         return {
             initialize: function(geotabApi, geotabState, callback) {
                 api = geotabApi;
-                loadDevices().catch(e => log('Error cargando lista de vehículos: ' + e.message));
-                document.getElementById('vapiRun').addEventListener('click', runAnalysis);
-                const copyBtn = document.getElementById('vapiCopyLog');
-                copyBtn.addEventListener('click', () => {
-                    const text = document.getElementById('vapiLog').textContent;
-                    navigator.clipboard.writeText(text).then(() => {
-                        copyBtn.textContent = '¡Copiado!';
-                        setTimeout(() => { copyBtn.textContent = 'Copiar log completo'; }, 1500);
-                    });
-                });
+                loadInitialData().catch(e => log('Error en inicialización: ' + e.message));
+                document.getElementById('btnConsult').addEventListener('click', executeQuery);
                 callback();
             },
             focus: function() {},
