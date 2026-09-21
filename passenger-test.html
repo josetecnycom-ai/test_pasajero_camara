@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Test Pasajero Cámara</title>
+<title>Test Diagnóstico Eventos Cámara</title>
 </head>
 <body style="margin:0;padding:0;background:transparent;">
 <style>
@@ -30,7 +30,7 @@
   .ptc-summary { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
   .ptc-metric { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 16px; min-width:140px; }
   .ptc-metric .lbl { font-size:11px; color:var(--ink-mid); text-transform:uppercase; font-weight:600; }
-  .ptc-metric .val { font-size:22px; font-weight:700; }
+  .ptc-metric .val { font-size:20px; font-weight:700; }
   table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
   th, td { padding:8px 12px; text-align:left; font-size:12px; border-bottom:1px solid var(--border); }
   th { background:var(--surface); font-weight:700; text-transform:uppercase; font-size:10px; color:var(--ink-mid); }
@@ -44,7 +44,7 @@
 </style>
 
 <div id="ptc-wrap">
-  <h1>Test: Viajes con pasajero vs sin pasajero (cámara)</h1>
+  <h1>Test Diagnóstico: Eventos de Cámara y Reglas</h1>
 
   <div class="ptc-bar">
     <div class="ptc-field">
@@ -59,11 +59,11 @@
       <label>Hasta</label>
       <input type="date" id="ptcTo"/>
     </div>
-    <button class="ptc-btn" id="ptcRun" disabled>Comparar</button>
+    <button class="ptc-btn" id="ptcRun" disabled>Analizar Todo</button>
   </div>
 
   <div id="ptcResults">
-    <div class="ptc-state">Selecciona vehículo y rango de fechas, y pulsa Comparar.</div>
+    <div class="ptc-state">Selecciona vehículo y rango de fechas para iniciar el análisis global.</div>
   </div>
 
   <div id="ptcLog" class="ptc-log" style="display:none;"></div>
@@ -81,7 +81,7 @@
         el.style.display = 'block';
         document.getElementById('ptcCopyLog').style.display = 'inline-flex';
         el.textContent += msg + '\n';
-        console.log('[PassengerTest]', msg);
+        console.log('[CameraTest]', msg);
     }
 
     function callApi(method, params) {
@@ -91,13 +91,13 @@
         });
     }
 
-    // ── Obtener la entidad Camera vinculada al vehículo ─────────────────
+    // ── Obtener datos de la entidad Camera ──────────────────────────────
     let _cameraCache = null;
     async function getCameraForDevice(deviceId) {
         if (!_cameraCache) {
             try {
                 _cameraCache = await callApi('Get', { typeName: 'Camera' });
-                log(`Camera: ${_cameraCache ? _cameraCache.length : 0} cámaras totales en la base`);
+                log(`Camera: ${_cameraCache ? _cameraCache.length : 0} cámaras en total en la base de datos.`);
             } catch (e) {
                 log('ERROR cargando lista de Camera: ' + e.message);
                 _cameraCache = [];
@@ -106,7 +106,7 @@
 
         const device = devices.find(d => d.id === deviceId);
         if (!device || !device.serialNumber) {
-            log(`AVISO: No se encontró el serialNumber para el dispositivo ${deviceId}.`);
+            log(`AVISO: No se encontró serialNumber para ${deviceId}.`);
             return null;
         }
 
@@ -118,70 +118,79 @@
         );
 
         if (!match) {
-            log(`AVISO: No se encontró cámara vinculada al GO con número de serie ${device.serialNumber} (vehículo ${deviceId}).`);
+            log(`AVISO: No se encontró registro en Camera para el GO con S/N ${device.serialNumber}.`);
             return null;
         }
 
-        log(`Cámara encontrada para ${deviceId}: ID=${match.id}, Serial=${match.cameraSerialNumber}`);
+        log(`Cámara mapeada: ID=${match.id}, Serial=${match.cameraSerialNumber}, Dispositivo=${match.deviceSerialNumber}`);
         return match;
     }
 
-    // ── Descarga de CameraEvent con estrategia multicam ────────────────
-    async function getPassengerEvents(deviceId, fromDate, toDate) {
+    // ── Consulta multicriterio de CameraEvent sin filtrar por tipo ─────
+    async function getAllCameraEvents(deviceId, fromDate, toDate) {
         const cameraObj = await getCameraForDevice(deviceId);
 
-        if (!cameraObj) {
-            log('ABORTANDO consulta CameraEvent: No hay cámara vinculada.');
-            return [];
-        }
-
-        // Variantes de filtrado para asegurar compatibilidad con el motor de Geotab
         const strategies = [
             { 
-                name: 'cameraSearch con ID de la entidad Camera', 
-                search: { cameraSearch: { id: cameraObj.id }, fromDate: fromDate, toDate: toDate } 
+                name: 'Sin filtros de cámara (solo rango de fechas global)', 
+                search: { fromDate: fromDate, toDate: toDate } 
             },
             { 
-                name: 'cameraSearch con serialNumber de cámara', 
-                search: { cameraSearch: { serialNumber: cameraObj.cameraSerialNumber }, fromDate: fromDate, toDate: toDate } 
-            },
-            { 
-                name: 'cameraSearch con deviceSearch', 
-                search: { cameraSearch: { deviceSearch: { id: deviceId } }, fromDate: fromDate, toDate: toDate } 
-            },
-            { 
-                name: 'cameras (array) con ID', 
-                search: { cameras: [{ id: cameraObj.id }], fromDate: fromDate, toDate: toDate } 
+                name: 'deviceSearch en CameraEvent', 
+                search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate } 
             }
         ];
 
-        let raw = null;
+        if (cameraObj) {
+            strategies.unshift(
+                { 
+                    name: 'cameraSearch por objeto ID', 
+                    search: { cameraSearch: { id: cameraObj.id }, fromDate: fromDate, toDate: toDate } 
+                },
+                { 
+                    name: 'cameraSearch por serialNumber', 
+                    search: { cameraSearch: { serialNumber: cameraObj.cameraSerialNumber }, fromDate: fromDate, toDate: toDate } 
+                }
+            );
+        }
+
+        let rawEvents = [];
+        let successStrat = null;
+
         for (const strat of strategies) {
             try {
-                log(`Probando consulta CameraEvent (${strat.name})…`);
-                raw = await callApi('Get', { typeName: 'CameraEvent', search: strat.search });
-                log(`¡Éxito con ${strat.name}! Se recibieron ${raw ? raw.length : 0} resultados.`);
+                log(`Probando consulta CameraEvent [${strat.name}]…`);
+                const res = await callApi('Get', { typeName: 'CameraEvent', search: strat.search });
+                log(`--> ÉXITO [${strat.name}]: ${res ? res.length : 0} eventos devueltos.`);
+                rawEvents = res || [];
+                successStrat = strat.name;
                 break;
             } catch (e) {
-                log(`Falló (${strat.name}): ${e.message}`);
+                log(`--> ERROR [${strat.name}]: ${e.message}`);
             }
         }
 
-        if (!raw || raw.length === 0) return [];
+        return { rawEvents, successStrat };
+    }
 
-        log('Primer evento crudo (ejemplo):');
-        log(JSON.stringify(raw[0], null, 2));
-
-        const filtered = raw.filter(ev => ev.eventType === 'Passenger.Disallowed');
-        log(`Eventos tras filtrar por eventType 'Passenger.Disallowed': ${filtered.length}`);
-
-        return filtered.map(ev => ({
-            id: ev.id,
-            deviceId: ev.deviceId || deviceId,
-            eventStart: ev.eventStart || ev.dateTime,
-            eventEnd: ev.eventEnd,
-            raw: ev
-        }));
+    // ── Consulta secundaria en ExceptionEvent (Reglas de Geotab) ────────
+    async function getExceptionEvents(deviceId, fromDate, toDate) {
+        try {
+            log(`Consultando ExceptionEvent (reglas de infracción) para ${deviceId}…`);
+            const exceptions = await callApi('Get', {
+                typeName: 'ExceptionEvent',
+                search: {
+                    deviceSearch: { id: deviceId },
+                    fromDate: fromDate,
+                    toDate: toDate
+                }
+            });
+            log(`ExceptionEvent: ${exceptions ? exceptions.length : 0} eventos de regla encontrados.`);
+            return exceptions || [];
+        } catch (e) {
+            log(`ERROR consultando ExceptionEvent: ${e.message}`);
+            return [];
+        }
     }
 
     async function getTrips(deviceId, fromDate, toDate) {
@@ -205,7 +214,6 @@
         return new Date(d).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
     }
 
-    // ── Consultar evidencia multimedia ───────────────────────────────
     async function viewEvidence(eventId) {
         try {
             const result = await callApi('Get', { 
@@ -221,10 +229,10 @@
             if (url) {
                 window.open(url, '_blank');
             } else {
-                alert('Grabación no disponible todavía para este evento.');
+                alert('Grabación no disponible para este evento.');
             }
         } catch (e) {
-            alert('Error obteniendo evidencia: ' + e.message);
+            alert('Error en grabación: ' + e.message);
         }
     }
     window.ptcViewEvidence = viewEvidence;
@@ -239,75 +247,87 @@
         }
 
         document.getElementById('ptcLog').textContent = '';
-        document.getElementById('ptcResults').innerHTML = '<div class="ptc-state">Consultando…</div>';
+        document.getElementById('ptcResults').innerHTML = '<div class="ptc-state">Analizando registros de cámara y reglas…</div>';
 
         const fromDate = fromInput + 'T00:00:00.000Z';
         const toDate = toInput + 'T23:59:59.999Z';
 
         try {
-            log(`Pidiendo trips de ${deviceId} entre ${fromDate} y ${toDate}`);
+            log(`=== INICIO DIAGNÓSTICO PARA VEHÍCULO ${deviceId} ===`);
             const trips = await getTrips(deviceId, fromDate, toDate);
-            log(`Trips encontrados: ${trips.length}`);
+            log(`Viajes (Trips) recuperados: ${trips.length}`);
 
-            log('Pidiendo eventos Passenger.Disallowed…');
-            const camEventsForDevice = await getPassengerEvents(deviceId, fromDate, toDate);
-            log(`Eventos de cámara para este vehículo tras normalizar: ${camEventsForDevice.length}`);
+            // 1. Petición amplia de CameraEvent
+            const { rawEvents, successStrat } = await getAllCameraEvents(deviceId, fromDate, toDate);
 
-            const enriched = trips.map(t => {
-                const tStart = new Date(t.start || t.startTime).getTime();
-                const tStop = new Date(t.stop || t.stopTime).getTime();
-                const events = camEventsForDevice.filter(ev => {
-                    const evT = new Date(ev.eventStart).getTime();
-                    return evT >= tStart && evT <= tStop;
-                });
-                return { trip: t, events: events, hasPassenger: events.length > 0 };
-            });
+            // Filtrar eventos pertenecientes al vehículo si la búsqueda devolvió globales
+            const deviceCamEvents = rawEvents.filter(ev => !ev.deviceId || ev.deviceId === deviceId);
 
-            renderResults(enriched);
+            // Extraer tipos de eventos únicos encontrados
+            const eventTypesFound = [...new Set(deviceCamEvents.map(ev => ev.eventType || 'Sin eventType'))];
+            log(`Tipos de evento de cámara distintos detectados: [${eventTypesFound.join(', ')}]`);
+
+            if (deviceCamEvents.length > 0) {
+                log('Muestra del primer CameraEvent recibido:');
+                log(JSON.stringify(deviceCamEvents[0], null, 2));
+            }
+
+            // 2. Consulta paralela de ExceptionEvents
+            const exceptions = await getExceptionEvents(deviceId, fromDate, toDate);
+
+            renderResults(trips, deviceCamEvents, exceptions, eventTypesFound, successStrat);
         } catch (e) {
-            log('ERROR: ' + e.message);
+            log('ERROR GENERAL: ' + e.message);
             document.getElementById('ptcResults').innerHTML =
                 `<div class="ptc-state" style="color:var(--danger);">Error: ${e.message}</div>`;
         }
     }
 
-    function renderResults(enriched) {
-        const withPassenger = enriched.filter(e => e.hasPassenger).length;
-        const withoutPassenger = enriched.length - withPassenger;
-
+    function renderResults(trips, camEvents, exceptions, eventTypesFound, successStrat) {
         let html = `
         <div class="ptc-summary">
-            <div class="ptc-metric"><div class="lbl">Total viajes</div><div class="val">${enriched.length}</div></div>
-            <div class="ptc-metric"><div class="lbl">Con pasajero</div><div class="val" style="color:var(--danger);">${withPassenger}</div></div>
-            <div class="ptc-metric"><div class="lbl">Sin pasajero</div><div class="val" style="color:var(--ok);">${withoutPassenger}</div></div>
+            <div class="ptc-metric"><div class="lbl">Viajes</div><div class="val">${trips.length}</div></div>
+            <div class="ptc-metric"><div class="lbl">Eventos Cámara</div><div class="val" style="color:var(--accent);">${camEvents.length}</div></div>
+            <div class="ptc-metric"><div class="lbl">Reglas (ExceptionEvent)</div><div class="val" style="color:var(--ok);">${exceptions.length}</div></div>
+        </div>
+        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;">
+            <strong>Diagnóstico de API:</strong><br>
+            • Método funcional de CameraEvent: <code>${successStrat || 'Ninguno (Error de API)'}</code><br>
+            • Tipos de eventos hallados: <code>${eventTypesFound.length ? eventTypesFound.join(', ') : 'Ninguno'}</code>
         </div>
         <table>
         <thead><tr>
-            <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Distancia</th><th>Estado</th><th>Eventos</th><th></th>
+            <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Eventos Cámara Detectados</th><th>Evidencia</th>
         </tr></thead><tbody>`;
 
-        enriched.sort((a,b) => new Date(b.trip.start || b.trip.startTime) - new Date(a.trip.start || a.trip.startTime));
+        trips.sort((a,b) => new Date(b.start || b.startTime) - new Date(a.start || a.startTime));
 
-        enriched.forEach(e => {
-            const t = e.trip;
+        trips.forEach(t => {
             const start = t.start || t.startTime;
             const stop = t.stop || t.stopTime;
-            const dist = (t.distance || 0).toFixed(2);
-            const badge = e.hasPassenger
-                ? `<span class="pill pill-danger">🎥 Con pasajero</span>`
-                : `<span class="pill pill-ok">Sin pasajero</span>`;
-            const evidenceLink = e.events.length > 0
-                ? `<a href="#" class="ptc-link" onclick="event.preventDefault();ptcViewEvidence('${e.events[0].id}')">Ver evidencia</a>`
+            const tStart = new Date(start).getTime();
+            const tStop = new Date(stop).getTime();
+
+            const evsInTrip = camEvents.filter(ev => {
+                const evT = new Date(ev.eventStart || ev.dateTime).getTime();
+                return evT >= tStart && evT <= tStop;
+            });
+
+            const typesList = evsInTrip.map(e => e.eventType).join(', ');
+            const badge = evsInTrip.length > 0
+                ? `<span class="pill pill-danger">🎥 ${evsInTrip.length} (${typesList})</span>`
+                : `<span class="pill pill-ok">Sin eventos</span>`;
+
+            const link = evsInTrip.length > 0
+                ? `<a href="#" class="ptc-link" onclick="event.preventDefault();ptcViewEvidence('${evsInTrip[0].id}')">Ver grabación</a>`
                 : '';
 
             html += `<tr>
                 <td>${fmtDateTime(start).split(' ')[0]}</td>
                 <td>${fmtDateTime(start)}</td>
                 <td>${fmtDateTime(stop)}</td>
-                <td>${dist} km</td>
                 <td>${badge}</td>
-                <td>${e.events.length}</td>
-                <td>${evidenceLink}</td>
+                <td>${link}</td>
             </tr>`;
         });
 
@@ -315,7 +335,7 @@
         document.getElementById('ptcResults').innerHTML = html;
     }
 
-    // ── Registro del addin ────────────────────────────────────────────
+    // ── Registro del Add-in ───────────────────────────────────────────
     if (typeof geotab === 'undefined') {
         window.geotab = { addin: {} };
     }
