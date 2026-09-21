@@ -112,7 +112,6 @@
 
         const devSerialClean = device.serialNumber.trim().toUpperCase();
 
-        // Comparación limpia ignorando mayúsculas/minúsculas y espacios
         const match = _cameraCache.find(c => 
             c.deviceSerialNumber && c.deviceSerialNumber.trim().toUpperCase() === devSerialClean
         );
@@ -127,11 +126,10 @@
     }
 
     // ── Descarga de CameraEvent ──────────────────────────────────────
-   // ── Descarga de CameraEvent ──────────────────────────────────────
     async function getPassengerEvents(deviceId, fromDate, toDate) {
         const cameraSerial = await getCameraSerialForDevice(deviceId);
 
-        // En el SDK de MyGeotab (api.call), CameraEvent se consulta con deviceSearch
+        // Primero se usa deviceSearch (formato nativo de la API MyGeotab JS SDK)
         let search = {
             deviceSearch: { id: deviceId },
             fromDate: fromDate,
@@ -144,7 +142,7 @@
             raw = await callApi('Get', { typeName: 'CameraEvent', search: search });
             log(`CameraEvent: ${raw ? raw.length : 0} resultados recibidos de la API`);
         } catch (e) {
-            log('Aviso con deviceSearch: ' + e.message + '. Probando búsqueda alternativa con cameraSerialNumber…');
+            log('Aviso con deviceSearch: ' + e.message + '. Probando búsqueda con cameraSerialNumber (singular)…');
             if (cameraSerial) {
                 try {
                     search = {
