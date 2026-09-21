@@ -89,36 +89,65 @@
         });
     }
 
-    // ── Descarga paginada de CameraEvent ─────────────────────────────
-    // NOTA: nombre de campo "label" dentro de eventTypeFilter y parámetros
-    // de paginación page/size sin verificar al 100% contra el schema real —
-    // revisa el log si vuelve vacío teniendo eventos en el rango.
-    async function getPassengerEvents(fromDate, toDate) {
-        let all = [];
-        let page = 0;
-        const size = 200;
-        while (true) {
-            let batch;
-            try {
-                batch = await callApi('Get', {
-                    typeName: 'CameraEvent',
+    // ── Descarga de CameraEvent ──────────────────────────────────────
+    // El error "CameraEventSearch with fromDate and toDate is required" confirma que
+    // esta API usa el patrón estándar de MyGeotab: search: { fromDate, toDate, ... },
+    // NO parámetros sueltos como decía la doc REST. Probamos primero sin filtrar por
+    // tipo de evento (no sabemos aún el nombre exacto de ese campo dentro de search),
+    // y filtramos por tipo en el cliente una vez veamos el objeto real en el log.
+    async function getPassengerEvents(deviceId, fromDate, toDate) {
+        let raw;
+        try {
+            raw = await callApi('Get', {
+                typeName: 'CameraEvent',
+                search: {
                     fromDate: fromDate,
                     toDate: toDate,
-                    eventTypeFilter: [{ label: 'Passenger.Disallowed' }],
-                    page: page,
-                    size: size
+                    deviceSearch: { id: deviceId }
+                }
+            });
+            log(`CameraEvent (con deviceSearch): ${raw ? raw.length : 0} resultados`);
+        } catch (e) {
+            log('deviceSearch no soportado o falló (' + e.message + '), reintentando sin deviceSearch…');
+            try {
+                raw = await callApi('Get', {
+                    typeName: 'CameraEvent',
+                    search: { fromDate: fromDate, toDate: toDate }
                 });
-            } catch (e) {
-                log('ERROR CameraEvent: ' + e.message);
-                break;
+                log(`CameraEvent (sin deviceSearch, TODOS los vehículos): ${raw ? raw.length : 0} resultados`);
+            } catch (e2) {
+                log('ERROR CameraEvent: ' + e2.message);
+                return [];
             }
-            log(`CameraEvent page ${page}: ${batch ? batch.length : 0} resultados`);
-            if (!batch || batch.length === 0) break;
-            all = all.concat(batch);
-            if (batch.length < size) break;
-            page++;
         }
-        return all;
+
+        if (!raw || raw.length === 0) return [];
+
+        // Volcamos el primer evento crudo tal cual para ver los nombres reales de los campos
+        log('Primer evento crudo (para revisar nombres de campos):');
+        log(JSON.stringify(raw[0], null, 2));
+
+        // Filtrado defensivo: probamos varios nombres de campo posibles para el tipo de evento,
+        // y para el id de dispositivo, hasta confirmar cuál usa tu base.
+        const getDeviceId = (ev) => ev.deviceId || (ev.device && ev.device.id) || null;
+        const getEventType = (ev) => ev.eventType || ev.ruleName || ev.type || ev.category || '';
+
+        const filtered = raw.filter(ev => {
+            const evType = String(getEventType(ev)).toLowerCase();
+            const matchesType = evType.includes('passenger') && evType.includes('disallow');
+            const evDevice = getDeviceId(ev);
+            const matchesDevice = !evDevice || evDevice === deviceId; // si no viene deviceId, no descartamos aquí
+            return matchesType && matchesDevice;
+        });
+        log(`Tras filtrar por tipo "Passenger.Disallowed" y vehículo: ${filtered.length} eventos`);
+
+        // Normalizamos deviceId/eventStart para el resto del código, sea cual sea el campo real
+        return filtered.map(ev => ({
+            raw: ev,
+            id: ev.id,
+            deviceId: getDeviceId(ev) || deviceId,
+            eventStart: ev.eventStart || ev.eventTime || ev.startTime || ev.activeFrom
+        }));
     }
 
     async function getTrips(deviceId, fromDate, toDate) {
@@ -176,9 +205,8 @@
             log(`Trips encontrados: ${trips.length}`);
 
             log('Pidiendo eventos Passenger.Disallowed…');
-            const camEvents = await getPassengerEvents(fromDate, toDate);
-            const camEventsForDevice = camEvents.filter(ev => ev.deviceId === deviceId);
-            log(`Eventos de cámara para este vehículo: ${camEventsForDevice.length} (de ${camEvents.length} totales en el rango)`);
+            const camEventsForDevice = await getPassengerEvents(deviceId, fromDate, toDate);
+            log(`Eventos de cámara para este vehículo tras normalizar: ${camEventsForDevice.length}`);
 
             const enriched = trips.map(t => {
                 const tStart = new Date(t.start || t.startTime).getTime();
