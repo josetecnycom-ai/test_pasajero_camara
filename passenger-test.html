@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Test Pasajero Cámara</title>
+</head>
+<body style="margin:0;padding:0;background:transparent;">
+<style>
+  #ptc-wrap {
+    --ink:#1a1a2e; --ink-mid:#4a4a6a; --border:#e2e2ee; --accent:#3d5af1;
+    --ok:#1a9e6e; --danger:#dc2626; --surface:#f7f7fb;
+    font-family:'Inter',system-ui,-apple-system,sans-serif; font-size:14px; color:var(--ink);
+    padding:20px 24px; max-width:1100px;
+  }
+  #ptc-wrap * { box-sizing:border-box; }
+  #ptc-wrap h1 { font-size:16px; margin:0 0 16px; }
+  .ptc-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:18px;
+    background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .ptc-field { display:flex; flex-direction:column; gap:4px; }
+  .ptc-field label { font-size:11px; font-weight:600; color:var(--ink-mid); text-transform:uppercase; }
+  .ptc-field select, .ptc-field input {
+    height:32px; border:1px solid #c8c8e0; border-radius:6px; padding:0 8px; font-size:13px; min-width:180px;
+  }
+  .ptc-btn {
+    height:32px; padding:0 16px; border-radius:6px; border:1px solid var(--accent);
+    background:var(--accent); color:#fff; font-weight:600; font-size:13px; cursor:pointer;
+  }
+  .ptc-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .ptc-summary { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .ptc-metric { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 16px; min-width:140px; }
+  .ptc-metric .lbl { font-size:11px; color:var(--ink-mid); text-transform:uppercase; font-weight:600; }
+  .ptc-metric .val { font-size:22px; font-weight:700; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  th, td { padding:8px 12px; text-align:left; font-size:12px; border-bottom:1px solid var(--border); }
+  th { background:var(--surface); font-weight:700; text-transform:uppercase; font-size:10px; color:var(--ink-mid); }
+  .pill { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .pill-ok { background:#e0f5ed; color:var(--ok); }
+  .pill-danger { background:#fee2e2; color:var(--danger); }
+  .ptc-link { color:var(--accent); text-decoration:none; font-weight:600; font-size:11px; }
+  .ptc-state { padding:30px; text-align:center; color:var(--ink-mid); font-size:13px; }
+  .ptc-log { font-family:monospace; font-size:11px; color:var(--ink-mid); white-space:pre-wrap;
+    background:var(--surface); border-radius:6px; padding:10px; margin-top:10px; max-height:140px; overflow:auto; }
+</style>
+
+<div id="ptc-wrap">
+  <h1>Test: Viajes con pasajero vs sin pasajero (cámara)</h1>
+
+  <div class="ptc-bar">
+    <div class="ptc-field">
+      <label>Vehículo</label>
+      <select id="ptcDevice"><option value="">Cargando vehículos…</option></select>
+    </div>
+    <div class="ptc-field">
+      <label>Desde</label>
+      <input type="date" id="ptcFrom"/>
+    </div>
+    <div class="ptc-field">
+      <label>Hasta</label>
+      <input type="date" id="ptcTo"/>
+    </div>
+    <button class="ptc-btn" id="ptcRun" disabled>Comparar</button>
+  </div>
+
+  <div id="ptcResults">
+    <div class="ptc-state">Selecciona vehículo y rango de fechas, y pulsa Comparar.</div>
+  </div>
+
+  <div id="ptcLog" class="ptc-log" style="display:none;"></div>
+</div>
+
+<script>
+(function() {
+
+    let api = null;
+    let devices = [];
+
+    function log(msg) {
+        const el = document.getElementById('ptcLog');
+        el.style.display = 'block';
+        el.textContent += msg + '\n';
+        console.log('[PassengerTest]', msg);
+    }
+
+    function callApi(method, params) {
+        return new Promise((resolve, reject) => {
+            if (!api) return reject(new Error('API no inicializada'));
+            api.call(method, params, resolve, reject);
+        });
+    }
+
+    // ── Descarga paginada de CameraEvent ─────────────────────────────
+    // NOTA: nombre de campo "label" dentro de eventTypeFilter y parámetros
+    // de paginación page/size sin verificar al 100% contra el schema real —
+    // revisa el log si vuelve vacío teniendo eventos en el rango.
+    async function getPassengerEvents(fromDate, toDate) {
+        let all = [];
+        let page = 0;
+        const size = 200;
+        while (true) {
+            let batch;
+            try {
+                batch = await callApi('Get', {
+                    typeName: 'CameraEvent',
+                    fromDate: fromDate,
+                    toDate: toDate,
+                    eventTypeFilter: [{ label: 'Passenger.Disallowed' }],
+                    page: page,
+                    size: size
+                });
+            } catch (e) {
+                log('ERROR CameraEvent: ' + e.message);
+                break;
+            }
+            log(`CameraEvent page ${page}: ${batch ? batch.length : 0} resultados`);
+            if (!batch || batch.length === 0) break;
+            all = all.concat(batch);
+            if (batch.length < size) break;
+            page++;
+        }
+        return all;
+    }
+
+    async function getTrips(deviceId, fromDate, toDate) {
+        return await callApi('Get', {
+            typeName: 'Trip',
+            search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate },
+            resultsLimit: 5000
+        });
+    }
+
+    async function loadDevices() {
+        const list = await callApi('Get', { typeName: 'Device', resultsLimit: 2000 });
+        devices = list;
+        const sel = document.getElementById('ptcDevice');
+        sel.innerHTML = '<option value="">Selecciona…</option>' +
+            list.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+        document.getElementById('ptcRun').disabled = false;
+    }
+
+    function fmtDateTime(d) {
+        return new Date(d).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    }
+
+    async function viewEvidence(eventId) {
+        try {
+            const result = await callApi('Get', { typeName: 'CameraEventRecording', eventId: eventId });
+            const rec = Array.isArray(result) ? result[0] : result;
+            const url = rec && (rec.mediaUrls ? (rec.mediaUrls[0] || rec.mediaUrls) : rec.fileDownloadUrl);
+            if (url) window.open(url, '_blank');
+            else alert('Grabación no disponible todavía para este evento.');
+        } catch (e) {
+            alert('Error obteniendo evidencia: ' + e.message);
+        }
+    }
+    window.ptcViewEvidence = viewEvidence;
+
+    async function runComparison() {
+        const deviceId = document.getElementById('ptcDevice').value;
+        const fromInput = document.getElementById('ptcFrom').value;
+        const toInput = document.getElementById('ptcTo').value;
+        if (!deviceId || !fromInput || !toInput) {
+            alert('Selecciona vehículo y ambas fechas.');
+            return;
+        }
+
+        document.getElementById('ptcLog').textContent = '';
+        document.getElementById('ptcResults').innerHTML = '<div class="ptc-state">Consultando…</div>';
+
+        const fromDate = new Date(fromInput + 'T00:00:00').toISOString();
+        const toDate = new Date(toInput + 'T23:59:59').toISOString();
+
+        try {
+            log(`Pidiendo trips de ${deviceId} entre ${fromDate} y ${toDate}`);
+            const trips = await getTrips(deviceId, fromDate, toDate);
+            log(`Trips encontrados: ${trips.length}`);
+
+            log('Pidiendo eventos Passenger.Disallowed…');
+            const camEvents = await getPassengerEvents(fromDate, toDate);
+            const camEventsForDevice = camEvents.filter(ev => ev.deviceId === deviceId);
+            log(`Eventos de cámara para este vehículo: ${camEventsForDevice.length} (de ${camEvents.length} totales en el rango)`);
+
+            const enriched = trips.map(t => {
+                const tStart = new Date(t.start || t.startTime).getTime();
+                const tStop = new Date(t.stop || t.stopTime).getTime();
+                const events = camEventsForDevice.filter(ev => {
+                    const evT = new Date(ev.eventStart).getTime();
+                    return evT >= tStart && evT <= tStop;
+                });
+                return { trip: t, events: events, hasPassenger: events.length > 0 };
+            });
+
+            renderResults(enriched);
+        } catch (e) {
+            log('ERROR: ' + e.message);
+            document.getElementById('ptcResults').innerHTML =
+                `<div class="ptc-state" style="color:var(--danger);">Error: ${e.message}</div>`;
+        }
+    }
+
+    function renderResults(enriched) {
+        const withPassenger = enriched.filter(e => e.hasPassenger).length;
+        const withoutPassenger = enriched.length - withPassenger;
+
+        let html = `
+        <div class="ptc-summary">
+            <div class="ptc-metric"><div class="lbl">Total viajes</div><div class="val">${enriched.length}</div></div>
+            <div class="ptc-metric"><div class="lbl">Con pasajero</div><div class="val" style="color:var(--danger);">${withPassenger}</div></div>
+            <div class="ptc-metric"><div class="lbl">Sin pasajero</div><div class="val" style="color:var(--ok);">${withoutPassenger}</div></div>
+        </div>
+        <table>
+        <thead><tr>
+            <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Distancia</th><th>Estado</th><th>Eventos</th><th></th>
+        </tr></thead><tbody>`;
+
+        enriched.sort((a,b) => new Date(b.trip.start || b.trip.startTime) - new Date(a.trip.start || a.trip.startTime));
+
+        enriched.forEach(e => {
+            const t = e.trip;
+            const start = t.start || t.startTime;
+            const stop = t.stop || t.stopTime;
+            const dist = (t.distance || 0).toFixed(2);
+            const badge = e.hasPassenger
+                ? `<span class="pill pill-danger">🎥 Con pasajero</span>`
+                : `<span class="pill pill-ok">Sin pasajero</span>`;
+            const evidenceLink = e.events.length > 0
+                ? `<a href="#" class="ptc-link" onclick="event.preventDefault();ptcViewEvidence('${e.events[0].id}')">Ver evidencia</a>`
+                : '';
+
+            html += `<tr>
+                <td>${fmtDateTime(start).split(' ')[0]}</td>
+                <td>${fmtDateTime(start)}</td>
+                <td>${fmtDateTime(stop)}</td>
+                <td>${dist} km</td>
+                <td>${badge}</td>
+                <td>${e.events.length}</td>
+                <td>${evidenceLink}</td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+        document.getElementById('ptcResults').innerHTML = html;
+    }
+
+    // ── Registro del addin ────────────────────────────────────────────
+    if (typeof geotab === 'undefined') {
+        window.geotab = { addin: {} };
+    }
+
+    geotab.addin.testpasajerocamara = function() {
+        return {
+            initialize: function(geotabApi, geotabState, callback) {
+                api = geotabApi;
+                loadDevices().catch(e => log('ERROR cargando vehículos: ' + e.message));
+                document.getElementById('ptcRun').addEventListener('click', runComparison);
+                callback();
+            },
+            focus: function() {},
+            blur: function() {}
+        };
+    };
+})();
+</script>
+</body>
+</html>
