@@ -142,69 +142,80 @@
         document.getElementById('btnConsult').disabled = false;
     }
 
-    async function executeQuery() {
-        const deviceId = document.getElementById('selDevice').value;
-        const cameraSn = document.getElementById('inpCameraSn').value.trim();
-        const eventTypeFilter = document.getElementById('selEventType').value;
-        const fromVal = document.getElementById('inpFrom').value;
-        const toVal = document.getElementById('inpTo').value;
+   async function executeQuery() {
+    const deviceId = document.getElementById('selDevice').value;
+    const cameraSn = document.getElementById('inpCameraSn').value.trim();
+    const eventTypeFilter = document.getElementById('selEventType').value;
+    const fromVal = document.getElementById('inpFrom').value;
+    const toVal = document.getElementById('inpTo').value;
 
-        if (!deviceId || !cameraSn || !fromVal || !toVal) {
-            alert('Por favor selecciona vehículo, introduce el S/N de la cámara y el rango de fechas.');
-            return;
-        }
+    if (!deviceId || !fromVal || !toVal) {
+        alert('Por favor selecciona vehículo y el rango de fechas.');
+        return;
+    }
 
-        document.getElementById('gtResults').innerHTML = '<div class="gt-empty">Consultando CameraEvent y Viajes…</div>';
-        const fromDate = fromVal + 'T00:00:00.000Z';
-        const toDate = toVal + 'T23:59:59.999Z';
+    document.getElementById('gtResults').innerHTML = '<div class="gt-empty">Consultando CameraEvent y Viajes…</div>';
+    const fromDate = fromVal + 'T00:00:00.000Z';
+    const toDate = toVal + 'T23:59:59.999Z';
 
-        try {
-            log(`Consultando CameraEvent para S/N [${cameraSn}] en rango [${fromDate} - ${toDate}]`);
+    try {
+        log(`Consultando datos para vehículo [ID: ${deviceId}] en rango [${fromDate} - ${toDate}]`);
 
-            // Peticiones paralelas: Viajes por vehículo y CameraEvent por S/N de cámara
-            const [trips, cameraEvents] = await Promise.all([
-                callApi('Get', {
-                    typeName: 'Trip',
-                    search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate },
-                    resultsLimit: 5000
-                }),
-                callApi('Get', {
-                    typeName: 'CameraEvent',
-                    search: {
-                        cameraSerialNumbers: [cameraSn],
-                        fromDate: fromDate,
-                        toDate: toDate
-                    }
-                })
-            ]);
+        // 1. Consulta de Viajes del vehículo
+        const trips = await callApi('Get', {
+            typeName: 'Trip',
+            search: { 
+                deviceSearch: { id: deviceId }, 
+                fromDate: fromDate, 
+                toDate: toDate 
+            },
+            resultsLimit: 5000
+        });
 
-            log(`Obtenidos ${trips.length} viajes y ${cameraEvents.length} eventos de cámara.`);
+        // 2. Consulta de CameraEvent usando deviceSearch (Estructura oficial SDK)
+        const cameraEvents = await callApi('Get', {
+            typeName: 'CameraEvent',
+            search: {
+                deviceSearch: { id: deviceId },
+                fromDate: fromDate,
+                toDate: toDate
+            }
+        });
 
-            // Filtrar por el tipo de evento seleccionado (ej. Passenger.Disallowed)
-            const filteredEvents = eventTypeFilter === 'ALL'
-                ? cameraEvents
-                : cameraEvents.filter(e => e.eventType === eventTypeFilter);
+        log(`Obtenidos ${trips.length} viajes y ${cameraEvents.length} eventos de cámara.`);
 
-            // Cruzar viajes con eventos por rango horario (eventStart dentro de start y stop del viaje)
-            const enrichedTrips = trips.map(t => {
-                const tStart = new Date(t.start || t.startTime).getTime();
-                const tStop = new Date(t.stop || t.stopTime).getTime();
+        // 3. Filtrado en JavaScript por S/N de cámara y por eventType
+        const filteredEvents = cameraEvents.filter(e => {
+            // Si el objeto devuelve S/N de cámara o mediaFile asociado, lo validamos
+            const snMatches = !cameraSn || 
+                (e.cameraSerialNumber && e.cameraSerialNumber.toLowerCase() === cameraSn.toLowerCase()) ||
+                (e.device && e.device.id === deviceId);
 
-                const tripEvents = filteredEvents.filter(ev => {
-                    const evStart = new Date(ev.eventStart).getTime();
-                    return evStart >= tStart && evStart <= tStop;
-                });
+            const typeMatches = (eventTypeFilter === 'ALL') || (e.eventType === eventTypeFilter);
+            
+            return snMatches && typeMatches;
+        });
 
-                return { trip: t, events: tripEvents };
+        // 4. Cruzar viajes con eventos por rango de hora (eventStart)
+        const enrichedTrips = trips.map(t => {
+            const tStart = new Date(t.start || t.startTime).getTime();
+            const tStop = new Date(t.stop || t.stopTime).getTime();
+
+            const tripEvents = filteredEvents.filter(ev => {
+                const evStart = new Date(ev.eventStart).getTime();
+                return evStart >= tStart && evStart <= tStop;
             });
 
-            renderResults(enrichedTrips, filteredEvents, cameraEvents);
-        } catch (e) {
-            log('Error ejecutando consulta CameraEvent: ' + (e.message || JSON.stringify(e)));
-            document.getElementById('gtResults').innerHTML = 
-                `<div class="gt-empty" style="color:var(--danger)">Error al obtener datos de cámara: ${e.message || 'Excepción no definida'}</div>`;
-        }
+            return { trip: t, events: tripEvents };
+        });
+
+        renderResults(enrichedTrips, filteredEvents, cameraEvents);
+    } catch (e) {
+        log('Error ejecutando consulta: ' + (e.message || JSON.stringify(e)));
+        document.getElementById('gtResults').innerHTML = 
+            `<div class="gt-empty" style="color:var(--danger)">Error al obtener datos: ${e.message || 'Excepción no definida'}</div>`;
     }
+}
 
     function renderResults(enriched, filteredEvents, allEvents) {
         const tripsWithEvents = enriched.filter(e => e.events.length > 0).length;
