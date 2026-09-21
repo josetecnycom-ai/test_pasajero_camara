@@ -40,7 +40,7 @@
   .ptc-link { color:var(--accent); text-decoration:none; font-weight:600; font-size:11px; }
   .ptc-state { padding:30px; text-align:center; color:var(--ink-mid); font-size:13px; }
   .ptc-log { font-family:monospace; font-size:11px; color:var(--ink-mid); white-space:pre-wrap;
-    background:var(--surface); border-radius:6px; padding:10px; margin-top:10px; max-height:140px; overflow:auto; }
+    background:var(--surface); border-radius:6px; padding:10px; margin-top:10px; max-height:420px; overflow:auto; }
 </style>
 
 <div id="ptc-wrap">
@@ -67,6 +67,7 @@
   </div>
 
   <div id="ptcLog" class="ptc-log" style="display:none;"></div>
+  <button class="ptc-btn" id="ptcCopyLog" style="display:none;margin-top:8px;background:#fff;color:var(--accent);">Copiar log completo</button>
 </div>
 
 <script>
@@ -78,6 +79,7 @@
     function log(msg) {
         const el = document.getElementById('ptcLog');
         el.style.display = 'block';
+        document.getElementById('ptcCopyLog').style.display = 'inline-flex';
         el.textContent += msg + '\n';
         console.log('[PassengerTest]', msg);
     }
@@ -90,34 +92,33 @@
     }
 
     // ── Resolver el número de serie de cámara del vehículo ──────────────
-    // La petición que SÍ funcionó en el Try It incluía cameraSerialNumbers.
-    // Sospechamos que sin ese filtro, en un rango de fechas amplio, el servidor
-    // intenta traer eventos de TODA la flota y por eso revienta con la excepción
-    // indefinida. Resolvemos primero la cámara del vehículo seleccionado.
+    // CONFIRMADO: el objeto Camera NO tiene deviceId, solo deviceSerialNumber
+    // (el número de serie físico del GO, ej. "GAPV4SACPXSA"). Hay que cruzarlo
+    // con Device.serialNumber, no con Device.id.
     let _cameraCache = null;
     async function getCameraSerialForDevice(deviceId) {
         if (!_cameraCache) {
             try {
                 _cameraCache = await callApi('Get', { typeName: 'Camera' });
                 log(`Camera: ${_cameraCache ? _cameraCache.length : 0} cámaras totales en la base`);
-                if (_cameraCache && _cameraCache.length > 0) {
-                    log('Primera cámara cruda (para confirmar campos):');
-                    log(JSON.stringify(_cameraCache[0], null, 2));
-                }
             } catch (e) {
                 log('ERROR Camera: ' + e.message);
                 _cameraCache = [];
             }
         }
-        const match = _cameraCache.find(c =>
-            c.deviceId === deviceId ||
-            (c.device && c.device.id === deviceId)
-        );
-        if (!match) {
-            log(`AVISO: no se encontró cámara asociada al vehículo ${deviceId} en la lista de Camera.`);
+
+        const device = devices.find(d => d.id === deviceId);
+        if (!device || !device.serialNumber) {
+            log(`AVISO: no se pudo obtener el serialNumber del vehículo ${deviceId} (¿es un GO device?).`);
             return null;
         }
-        return match.cameraSerialNumber || match.serialNumber || null;
+
+        const match = _cameraCache.find(c => c.deviceSerialNumber === device.serialNumber);
+        if (!match) {
+            log(`AVISO: no se encontró cámara con deviceSerialNumber=${device.serialNumber} (vehículo ${deviceId}).`);
+            return null;
+        }
+        return match.cameraSerialNumber || null;
     }
 
     // ── Descarga de CameraEvent ──────────────────────────────────────
@@ -297,6 +298,14 @@
                 api = geotabApi;
                 loadDevices().catch(e => log('ERROR cargando vehículos: ' + e.message));
                 document.getElementById('ptcRun').addEventListener('click', runComparison);
+                const copyBtn = document.getElementById('ptcCopyLog');
+                copyBtn.addEventListener('click', () => {
+                    const text = document.getElementById('ptcLog').textContent;
+                    navigator.clipboard.writeText(text).then(() => {
+                        copyBtn.textContent = '¡Copiado!';
+                        setTimeout(() => { copyBtn.textContent = 'Copiar log completo'; }, 1500);
+                    });
+                });
                 callback();
             },
             focus: function() {},
