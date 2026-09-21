@@ -92,9 +92,6 @@
     }
 
     // ── Resolver el número de serie de cámara del vehículo ──────────────
-    // CONFIRMADO: el objeto Camera NO tiene deviceId, solo deviceSerialNumber
-    // (el número de serie físico del GO, ej. "GAPV4SACPXSA"). Hay que cruzarlo
-    // con Device.serialNumber, no con Device.id.
     let _cameraCache = null;
     async function getCameraSerialForDevice(deviceId) {
         if (!_cameraCache) {
@@ -102,45 +99,54 @@
                 _cameraCache = await callApi('Get', { typeName: 'Camera' });
                 log(`Camera: ${_cameraCache ? _cameraCache.length : 0} cámaras totales en la base`);
             } catch (e) {
-                log('ERROR Camera: ' + e.message);
+                log('ERROR cargando lista de Camera: ' + e.message);
                 _cameraCache = [];
             }
         }
 
         const device = devices.find(d => d.id === deviceId);
         if (!device || !device.serialNumber) {
-            log(`AVISO: no se pudo obtener el serialNumber del vehículo ${deviceId} (¿es un GO device?).`);
+            log(`AVISO: No se encontró el serialNumber para el dispositivo ${deviceId}.`);
             return null;
         }
 
-        const match = _cameraCache.find(c => c.deviceSerialNumber === device.serialNumber);
+        const devSerialClean = device.serialNumber.trim().toUpperCase();
+
+        // Comparación limpia ignorando mayúsculas/minúsculas y espacios
+        const match = _cameraCache.find(c => 
+            c.deviceSerialNumber && c.deviceSerialNumber.trim().toUpperCase() === devSerialClean
+        );
+
         if (!match) {
-            log(`AVISO: no se encontró cámara con deviceSerialNumber=${device.serialNumber} (vehículo ${deviceId}).`);
+            log(`AVISO: No se encontró cámara vinculada al GO con número de serie ${device.serialNumber} (vehículo ${deviceId}).`);
             return null;
         }
+
+        log(`Cámara encontrada para ${deviceId}: ${match.cameraSerialNumber}`);
         return match.cameraSerialNumber || null;
     }
 
     // ── Descarga de CameraEvent ──────────────────────────────────────
-    // CONFIRMADO con el Try It de la doc (capturado en DevTools):
-    // - El search NO acepta deviceSearch, solo fromDate/toDate (+ cameraSerialNumbers).
-    // - La respuesta trae deviceId, deviceName y eventType en texto plano
-    //   (ej. "Passenger.Disallowed"), así que además filtramos por tipo en el cliente.
     async function getPassengerEvents(deviceId, fromDate, toDate) {
         const cameraSerial = await getCameraSerialForDevice(deviceId);
 
-        const search = { fromDate: fromDate, toDate: toDate };
-        if (cameraSerial) {
-            search.cameraSerialNumbers = [cameraSerial];
-            log(`Filtrando CameraEvent por cameraSerialNumbers: [${cameraSerial}]`);
-        } else {
-            log('AVISO: sin número de serie de cámara — la petición irá sin filtrar por cámara (puede fallar en rangos amplios).');
+        // Si no hay número de serie de cámara, cortamos para evitar la excepción de Geotab
+        if (!cameraSerial) {
+            log('ABORTANDO consulta CameraEvent: cameraSerialNumbers es obligatorio para la API de Geotab.');
+            return [];
         }
+
+        const search = { 
+            fromDate: fromDate, 
+            toDate: toDate,
+            cameraSerialNumbers: [cameraSerial]
+        };
 
         let raw;
         try {
+            log(`Pidiendo CameraEvent filtrando por cameraSerialNumbers: [${cameraSerial}]`);
             raw = await callApi('Get', { typeName: 'CameraEvent', search: search });
-            log(`CameraEvent: ${raw ? raw.length : 0} resultados`);
+            log(`CameraEvent: ${raw ? raw.length : 0} resultados recibidos de la API`);
         } catch (e) {
             log('ERROR CameraEvent: ' + e.message);
             return [];
@@ -148,15 +154,11 @@
 
         if (!raw || raw.length === 0) return [];
 
-        log('Primer evento crudo (para confirmar el resto de campos, ej. "id"):');
+        log('Primer evento crudo (ejemplo):');
         log(JSON.stringify(raw[0], null, 2));
 
         const filtered = raw.filter(ev => ev.deviceId === deviceId && ev.eventType === 'Passenger.Disallowed');
-        log(`Tras filtrar por vehículo (${deviceId}) y eventType Passenger.Disallowed: ${filtered.length}`);
-
-        if (filtered.length > 0 && !filtered[0].id) {
-            log('AVISO: el evento no trae campo "id" visible — revisa el JSON de arriba para localizar el identificador real antes de usar "Ver evidencia".');
-        }
+        log(`Eventos tras filtrar por eventType 'Passenger.Disallowed' y deviceId '${deviceId}': ${filtered.length}`);
 
         return filtered.map(ev => ({
             id: ev.id,
@@ -188,13 +190,24 @@
         return new Date(d).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
     }
 
+    // ── Consultar evidencia multimedia ───────────────────────────────
     async function viewEvidence(eventId) {
         try {
-            const result = await callApi('Get', { typeName: 'CameraEventRecording', eventId: eventId });
+            const result = await callApi('Get', { 
+                typeName: 'CameraEventRecording', 
+                search: { 
+                    eventId: [eventId],
+                    includeUnblurred: true 
+                } 
+            });
             const rec = Array.isArray(result) ? result[0] : result;
-            const url = rec && (rec.mediaUrls ? (rec.mediaUrls[0] || rec.mediaUrls) : rec.fileDownloadUrl);
-            if (url) window.open(url, '_blank');
-            else alert('Grabación no disponible todavía para este evento.');
+            const url = rec && (rec.mediaUrls ? (Array.isArray(rec.mediaUrls) ? rec.mediaUrls[0] : rec.mediaUrls) : rec.fileDownloadUrl);
+            
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                alert('Grabación no disponible todavía para este evento.');
+            }
         } catch (e) {
             alert('Error obteniendo evidencia: ' + e.message);
         }
