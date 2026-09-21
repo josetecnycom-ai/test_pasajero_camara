@@ -89,20 +89,57 @@
         });
     }
 
+    // ── Resolver el número de serie de cámara del vehículo ──────────────
+    // La petición que SÍ funcionó en el Try It incluía cameraSerialNumbers.
+    // Sospechamos que sin ese filtro, en un rango de fechas amplio, el servidor
+    // intenta traer eventos de TODA la flota y por eso revienta con la excepción
+    // indefinida. Resolvemos primero la cámara del vehículo seleccionado.
+    let _cameraCache = null;
+    async function getCameraSerialForDevice(deviceId) {
+        if (!_cameraCache) {
+            try {
+                _cameraCache = await callApi('Get', { typeName: 'Camera' });
+                log(`Camera: ${_cameraCache ? _cameraCache.length : 0} cámaras totales en la base`);
+                if (_cameraCache && _cameraCache.length > 0) {
+                    log('Primera cámara cruda (para confirmar campos):');
+                    log(JSON.stringify(_cameraCache[0], null, 2));
+                }
+            } catch (e) {
+                log('ERROR Camera: ' + e.message);
+                _cameraCache = [];
+            }
+        }
+        const match = _cameraCache.find(c =>
+            c.deviceId === deviceId ||
+            (c.device && c.device.id === deviceId)
+        );
+        if (!match) {
+            log(`AVISO: no se encontró cámara asociada al vehículo ${deviceId} en la lista de Camera.`);
+            return null;
+        }
+        return match.cameraSerialNumber || match.serialNumber || null;
+    }
+
     // ── Descarga de CameraEvent ──────────────────────────────────────
     // CONFIRMADO con el Try It de la doc (capturado en DevTools):
-    // - El search NO acepta deviceSearch, solo fromDate/toDate (+ opcionalmente
-    //   cameraSerialNumbers, que de momento no usamos).
+    // - El search NO acepta deviceSearch, solo fromDate/toDate (+ cameraSerialNumbers).
     // - La respuesta trae deviceId, deviceName y eventType en texto plano
-    //   (ej. "Passenger.Disallowed"), así que filtramos aquí en el cliente.
+    //   (ej. "Passenger.Disallowed"), así que además filtramos por tipo en el cliente.
     async function getPassengerEvents(deviceId, fromDate, toDate) {
+        const cameraSerial = await getCameraSerialForDevice(deviceId);
+
+        const search = { fromDate: fromDate, toDate: toDate };
+        if (cameraSerial) {
+            search.cameraSerialNumbers = [cameraSerial];
+            log(`Filtrando CameraEvent por cameraSerialNumbers: [${cameraSerial}]`);
+        } else {
+            log('AVISO: sin número de serie de cámara — la petición irá sin filtrar por cámara (puede fallar en rangos amplios).');
+        }
+
         let raw;
         try {
-            raw = await callApi('Get', {
-                typeName: 'CameraEvent',
-                search: { fromDate: fromDate, toDate: toDate }
-            });
-            log(`CameraEvent (todos los vehículos de la base, sin filtrar): ${raw ? raw.length : 0} resultados`);
+            raw = await callApi('Get', { typeName: 'CameraEvent', search: search });
+            log(`CameraEvent: ${raw ? raw.length : 0} resultados`);
         } catch (e) {
             log('ERROR CameraEvent: ' + e.message);
             return [];
