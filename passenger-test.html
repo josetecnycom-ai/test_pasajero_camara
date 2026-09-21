@@ -68,8 +68,8 @@
 
 <div id="gt-addin">
   <div class="gt-header">
-    <h1>Informe de Eventos de Cámara (CameraEvent API)</h1>
-    <p>Consulta directa de detección de pasajeros y eventos de IA visual</p>
+    <h1>Informe de Detección de Pasajeros y Eventos de Cámara</h1>
+    <p>Consulta directa de la API de CameraEvent y cruce con viajes</p>
   </div>
 
   <div class="gt-filter-bar">
@@ -82,11 +82,11 @@
       <input type="text" id="inpCameraSn" placeholder="Ej: GEU6Z0Z8CKT4" value="GEU6Z0Z8CKT4"/>
     </div>
     <div class="gt-field">
-      <label>Tipo de Evento</label>
+      <label>Evento de Cámara</label>
       <select id="selEventType">
-        <option value="ALL">-- Todos los eventos --</option>
-        <option value="Passenger.Disallowed" selected>🚫 Passenger.Disallowed (Pasajero)</option>
-        <option value="Speed.Sign.Detected">🛑 Speed.Sign.Detected</option>
+        <option value="Passenger.Disallowed" selected>🚫 Passenger.Disallowed (Pasajero no permitido)</option>
+        <option value="ALL">-- Todos los eventos de cámara --</option>
+        <option value="Speed.Sign.Detected">🛑 Speed.Sign.Detected (Señales de velocidad)</option>
       </select>
     </div>
     <div class="gt-field">
@@ -137,7 +137,7 @@
         devices = await callApi('Get', { typeName: 'Device', resultsLimit: 2000 });
         const devSel = document.getElementById('selDevice');
         devSel.innerHTML = '<option value="">Selecciona vehículo…</option>' +
-            devices.map(d => `<option value="${d.id}">${d.name} (${d.serialNumber || d.id})</option>`).join('');
+            devices.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
 
         document.getElementById('btnConsult').disabled = false;
     }
@@ -159,9 +159,9 @@
         const toDate = toVal + 'T23:59:59.999Z';
 
         try {
-            log(`Consultando CameraEvent para cámara [${cameraSn}] en rango [${fromDate} - ${toDate}]`);
-            
-            // Peticiones paralelas: Viajes por vehículo y CameraEvent por cámara
+            log(`Consultando CameraEvent para S/N [${cameraSn}] en rango [${fromDate} - ${toDate}]`);
+
+            // Peticiones paralelas: Viajes por vehículo y CameraEvent por S/N de cámara
             const [trips, cameraEvents] = await Promise.all([
                 callApi('Get', {
                     typeName: 'Trip',
@@ -178,14 +178,14 @@
                 })
             ]);
 
-            log(`Éxito API: ${trips.length} viajes y ${cameraEvents.length} eventos de cámara obtenidos.`);
+            log(`Obtenidos ${trips.length} viajes y ${cameraEvents.length} eventos de cámara.`);
 
-            // Filtrar por el tipo de evento seleccionado
+            // Filtrar por el tipo de evento seleccionado (ej. Passenger.Disallowed)
             const filteredEvents = eventTypeFilter === 'ALL'
                 ? cameraEvents
                 : cameraEvents.filter(e => e.eventType === eventTypeFilter);
 
-            // Cruzar viajes con eventos según la marca de tiempo
+            // Cruzar viajes con eventos por rango horario (eventStart dentro de start y stop del viaje)
             const enrichedTrips = trips.map(t => {
                 const tStart = new Date(t.start || t.startTime).getTime();
                 const tStop = new Date(t.stop || t.stopTime).getTime();
@@ -202,7 +202,7 @@
         } catch (e) {
             log('Error ejecutando consulta CameraEvent: ' + (e.message || JSON.stringify(e)));
             document.getElementById('gtResults').innerHTML = 
-                `<div class="gt-empty" style="color:var(--danger)">Error: ${e.message || 'Error al consultar CameraEvent'}</div>`;
+                `<div class="gt-empty" style="color:var(--danger)">Error al obtener datos de cámara: ${e.message || 'Excepción no definida'}</div>`;
         }
     }
 
@@ -210,6 +210,7 @@
         const tripsWithEvents = enriched.filter(e => e.events.length > 0).length;
         const totalTrips = enriched.length;
 
+        // Desglose de tipos de evento detectados
         const eventCounts = {};
         allEvents.forEach(e => {
             eventCounts[e.eventType] = (eventCounts[e.eventType] || 0) + 1;
@@ -219,20 +220,21 @@
         <div class="gt-metrics">
             <div class="gt-card"><div class="lbl">Viajes Analizados</div><div class="val">${totalTrips}</div></div>
             <div class="gt-card"><div class="lbl">Viajes con Evento</div><div class="val" style="color:var(--danger);">${tripsWithEvents}</div></div>
-            <div class="gt-card"><div class="lbl">Eventos Coincidentes</div><div class="val" style="color:var(--accent);">${filteredEvents.length}</div></div>
+            <div class="gt-card"><div class="lbl">Eventos Filtrados</div><div class="val" style="color:var(--accent);">${filteredEvents.length}</div></div>
             <div class="gt-card"><div class="lbl">Total Eventos Cámara</div><div class="val">${allEvents.length}</div></div>
         </div>
 
         <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;">
-            <strong>Tipos de Evento Detectados por la Cámara:</strong>
+            <strong>Desglose de Eventos Detectados en la Cámara:</strong>
             <ul style="margin:8px 0 0;padding-left:20px;font-size:12px;color:var(--ink);">`;
 
         const keys = Object.keys(eventCounts);
         if (keys.length === 0) {
-            html += `<li>Ninguno en este periodo.</li>`;
+            html += `<li>No se registraron eventos en este rango.</li>`;
         } else {
             keys.forEach(type => {
-                html += `<li><strong>${type}</strong>: ${eventCounts[type]} detección(es)</li>`;
+                const isTarget = type === 'Passenger.Disallowed';
+                html += `<li><strong style="${isTarget ? 'color:var(--danger);' : ''}">${type}</strong>: ${eventCounts[type]} evento(s)</li>`;
             });
         }
 
@@ -242,8 +244,8 @@
         <table>
         <thead>
             <tr>
-                <th>Fecha / Hora Inicio</th>
-                <th>Hora Fin</th>
+                <th>Inicio Viaje</th>
+                <th>Fin Viaje</th>
                 <th>Distancia</th>
                 <th>Estado</th>
                 <th>Detalle de Eventos</th>
@@ -269,7 +271,7 @@
                         counts[ev.eventType] = (counts[ev.eventType] || 0) + 1;
                     });
                     eventsSummary = Object.entries(counts)
-                        .map(([type, count]) => `<strong>${type}</strong> (${count})`)
+                        .map(([type, count]) => `<span style="color:var(--danger);font-weight:600;">${type}</span> (${count})`)
                         .join(', ');
                 }
 
@@ -287,7 +289,7 @@
             });
         }
 
-        html += '</tbody>mtable></div>';
+        html += '</tbody></table></div>';
         document.getElementById('gtResults').innerHTML = html;
     }
 
