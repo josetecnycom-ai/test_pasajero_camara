@@ -213,8 +213,8 @@
         document.getElementById('ptcLog').textContent = '';
         document.getElementById('ptcResults').innerHTML = '<div class="ptc-state">Consultando…</div>';
 
-        const fromDate = new Date(fromInput + 'T00:00:00').toISOString();
-        const toDate = new Date(toInput + 'T23:59:59').toISOString();
+        const fromDate = fromInput + 'T00:00:00.000Z';
+        const toDate = toInput + 'T23:59:59.999Z';
 
         try {
             log(`Pidiendo trips de ${deviceId} entre ${fromDate} y ${toDate}`);
