@@ -127,29 +127,40 @@
     }
 
     // ── Descarga de CameraEvent ──────────────────────────────────────
+   // ── Descarga de CameraEvent ──────────────────────────────────────
     async function getPassengerEvents(deviceId, fromDate, toDate) {
         const cameraSerial = await getCameraSerialForDevice(deviceId);
 
-        // Si no hay número de serie de cámara, cortamos para evitar la excepción de Geotab
-        if (!cameraSerial) {
-            log('ABORTANDO consulta CameraEvent: cameraSerialNumbers es obligatorio para la API de Geotab.');
-            return [];
-        }
-
-        const search = { 
-            fromDate: fromDate, 
-            toDate: toDate,
-            cameraSerialNumbers: [cameraSerial]
+        // En el SDK de MyGeotab (api.call), CameraEvent se consulta con deviceSearch
+        let search = {
+            deviceSearch: { id: deviceId },
+            fromDate: fromDate,
+            toDate: toDate
         };
 
         let raw;
         try {
-            log(`Pidiendo CameraEvent filtrando por cameraSerialNumbers: [${cameraSerial}]`);
+            log(`Pidiendo CameraEvent usando deviceSearch para el vehículo ${deviceId}…`);
             raw = await callApi('Get', { typeName: 'CameraEvent', search: search });
             log(`CameraEvent: ${raw ? raw.length : 0} resultados recibidos de la API`);
         } catch (e) {
-            log('ERROR CameraEvent: ' + e.message);
-            return [];
+            log('Aviso con deviceSearch: ' + e.message + '. Probando búsqueda alternativa con cameraSerialNumber…');
+            if (cameraSerial) {
+                try {
+                    search = {
+                        cameraSerialNumber: cameraSerial,
+                        fromDate: fromDate,
+                        toDate: toDate
+                    };
+                    raw = await callApi('Get', { typeName: 'CameraEvent', search: search });
+                    log(`CameraEvent (fallback): ${raw ? raw.length : 0} resultados recibidos`);
+                } catch (e2) {
+                    log('ERROR CameraEvent: ' + e2.message);
+                    return [];
+                }
+            } else {
+                return [];
+            }
         }
 
         if (!raw || raw.length === 0) return [];
@@ -157,8 +168,8 @@
         log('Primer evento crudo (ejemplo):');
         log(JSON.stringify(raw[0], null, 2));
 
-        const filtered = raw.filter(ev => ev.deviceId === deviceId && ev.eventType === 'Passenger.Disallowed');
-        log(`Eventos tras filtrar por eventType 'Passenger.Disallowed' y deviceId '${deviceId}': ${filtered.length}`);
+        const filtered = raw.filter(ev => ev.eventType === 'Passenger.Disallowed');
+        log(`Eventos tras filtrar por eventType 'Passenger.Disallowed': ${filtered.length}`);
 
         return filtered.map(ev => ({
             id: ev.id,
