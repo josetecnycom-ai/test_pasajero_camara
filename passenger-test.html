@@ -90,63 +90,42 @@
     }
 
     // ── Descarga de CameraEvent ──────────────────────────────────────
-    // El error "CameraEventSearch with fromDate and toDate is required" confirma que
-    // esta API usa el patrón estándar de MyGeotab: search: { fromDate, toDate, ... },
-    // NO parámetros sueltos como decía la doc REST. Probamos primero sin filtrar por
-    // tipo de evento (no sabemos aún el nombre exacto de ese campo dentro de search),
-    // y filtramos por tipo en el cliente una vez veamos el objeto real en el log.
+    // CONFIRMADO con el Try It de la doc (capturado en DevTools):
+    // - El search NO acepta deviceSearch, solo fromDate/toDate (+ opcionalmente
+    //   cameraSerialNumbers, que de momento no usamos).
+    // - La respuesta trae deviceId, deviceName y eventType en texto plano
+    //   (ej. "Passenger.Disallowed"), así que filtramos aquí en el cliente.
     async function getPassengerEvents(deviceId, fromDate, toDate) {
         let raw;
         try {
             raw = await callApi('Get', {
                 typeName: 'CameraEvent',
-                search: {
-                    fromDate: fromDate,
-                    toDate: toDate,
-                    deviceSearch: { id: deviceId }
-                }
+                search: { fromDate: fromDate, toDate: toDate }
             });
-            log(`CameraEvent (con deviceSearch): ${raw ? raw.length : 0} resultados`);
+            log(`CameraEvent (todos los vehículos de la base, sin filtrar): ${raw ? raw.length : 0} resultados`);
         } catch (e) {
-            log('deviceSearch no soportado o falló (' + e.message + '), reintentando sin deviceSearch…');
-            try {
-                raw = await callApi('Get', {
-                    typeName: 'CameraEvent',
-                    search: { fromDate: fromDate, toDate: toDate }
-                });
-                log(`CameraEvent (sin deviceSearch, TODOS los vehículos): ${raw ? raw.length : 0} resultados`);
-            } catch (e2) {
-                log('ERROR CameraEvent: ' + e2.message);
-                return [];
-            }
+            log('ERROR CameraEvent: ' + e.message);
+            return [];
         }
 
         if (!raw || raw.length === 0) return [];
 
-        // Volcamos el primer evento crudo tal cual para ver los nombres reales de los campos
-        log('Primer evento crudo (para revisar nombres de campos):');
+        log('Primer evento crudo (para confirmar el resto de campos, ej. "id"):');
         log(JSON.stringify(raw[0], null, 2));
 
-        // Filtrado defensivo: probamos varios nombres de campo posibles para el tipo de evento,
-        // y para el id de dispositivo, hasta confirmar cuál usa tu base.
-        const getDeviceId = (ev) => ev.deviceId || (ev.device && ev.device.id) || null;
-        const getEventType = (ev) => ev.eventType || ev.ruleName || ev.type || ev.category || '';
+        const filtered = raw.filter(ev => ev.deviceId === deviceId && ev.eventType === 'Passenger.Disallowed');
+        log(`Tras filtrar por vehículo (${deviceId}) y eventType Passenger.Disallowed: ${filtered.length}`);
 
-        const filtered = raw.filter(ev => {
-            const evType = String(getEventType(ev)).toLowerCase();
-            const matchesType = evType.includes('passenger') && evType.includes('disallow');
-            const evDevice = getDeviceId(ev);
-            const matchesDevice = !evDevice || evDevice === deviceId; // si no viene deviceId, no descartamos aquí
-            return matchesType && matchesDevice;
-        });
-        log(`Tras filtrar por tipo "Passenger.Disallowed" y vehículo: ${filtered.length} eventos`);
+        if (filtered.length > 0 && !filtered[0].id) {
+            log('AVISO: el evento no trae campo "id" visible — revisa el JSON de arriba para localizar el identificador real antes de usar "Ver evidencia".');
+        }
 
-        // Normalizamos deviceId/eventStart para el resto del código, sea cual sea el campo real
         return filtered.map(ev => ({
-            raw: ev,
             id: ev.id,
-            deviceId: getDeviceId(ev) || deviceId,
-            eventStart: ev.eventStart || ev.eventTime || ev.startTime || ev.activeFrom
+            deviceId: ev.deviceId,
+            eventStart: ev.eventStart,
+            eventEnd: ev.eventEnd,
+            raw: ev
         }));
     }
 
