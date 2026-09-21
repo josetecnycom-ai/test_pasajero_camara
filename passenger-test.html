@@ -3,301 +3,250 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Test Diagnóstico Eventos Cámara</title>
+<title>Geotab Video REST API Test</title>
 </head>
 <body style="margin:0;padding:0;background:transparent;">
 <style>
-  #ptc-wrap {
+  #vapi-wrap {
     --ink:#1a1a2e; --ink-mid:#4a4a6a; --border:#e2e2ee; --accent:#3d5af1;
     --ok:#1a9e6e; --danger:#dc2626; --surface:#f7f7fb;
     font-family:'Inter',system-ui,-apple-system,sans-serif; font-size:14px; color:var(--ink);
     padding:20px 24px; max-width:1100px;
   }
-  #ptc-wrap * { box-sizing:border-box; }
-  #ptc-wrap h1 { font-size:16px; margin:0 0 16px; }
-  .ptc-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:18px;
+  #vapi-wrap * { box-sizing:border-box; }
+  #vapi-wrap h1 { font-size:16px; margin:0 0 16px; }
+  .vapi-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:18px;
     background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
-  .ptc-field { display:flex; flex-direction:column; gap:4px; }
-  .ptc-field label { font-size:11px; font-weight:600; color:var(--ink-mid); text-transform:uppercase; }
-  .ptc-field select, .ptc-field input {
+  .vapi-field { display:flex; flex-direction:column; gap:4px; }
+  .vapi-field label { font-size:11px; font-weight:600; color:var(--ink-mid); text-transform:uppercase; }
+  .vapi-field select, .vapi-field input {
     height:32px; border:1px solid #c8c8e0; border-radius:6px; padding:0 8px; font-size:13px; min-width:180px;
   }
-  .ptc-btn {
+  .vapi-btn {
     height:32px; padding:0 16px; border-radius:6px; border:1px solid var(--accent);
     background:var(--accent); color:#fff; font-weight:600; font-size:13px; cursor:pointer;
   }
-  .ptc-btn:disabled { opacity:.5; cursor:not-allowed; }
-  .ptc-summary { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
-  .ptc-metric { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 16px; min-width:140px; }
-  .ptc-metric .lbl { font-size:11px; color:var(--ink-mid); text-transform:uppercase; font-weight:600; }
-  .ptc-metric .val { font-size:20px; font-weight:700; }
+  .vapi-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .vapi-summary { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .vapi-metric { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 16px; min-width:140px; }
+  .vapi-metric .lbl { font-size:11px; color:var(--ink-mid); text-transform:uppercase; font-weight:600; }
+  .vapi-metric .val { font-size:20px; font-weight:700; }
   table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
   th, td { padding:8px 12px; text-align:left; font-size:12px; border-bottom:1px solid var(--border); }
   th { background:var(--surface); font-weight:700; text-transform:uppercase; font-size:10px; color:var(--ink-mid); }
   .pill { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
   .pill-ok { background:#e0f5ed; color:var(--ok); }
   .pill-danger { background:#fee2e2; color:var(--danger); }
-  .ptc-link { color:var(--accent); text-decoration:none; font-weight:600; font-size:11px; }
-  .ptc-state { padding:30px; text-align:center; color:var(--ink-mid); font-size:13px; }
-  .ptc-log { font-family:monospace; font-size:11px; color:var(--ink-mid); white-space:pre-wrap;
-    background:var(--surface); border-radius:6px; padding:10px; margin-top:10px; max-height:420px; overflow:auto; }
+  .vapi-link { color:var(--accent); text-decoration:none; font-weight:600; font-size:11px; cursor:pointer; }
+  .vapi-state { padding:30px; text-align:center; color:var(--ink-mid); font-size:13px; }
+  .vapi-log { font-family:monospace; font-size:11px; color:var(--ink-mid); white-space:pre-wrap;
+    background:var(--surface); border-radius:6px; padding:10px; margin-top:10px; max-height:350px; overflow:auto; }
 </style>
 
-<div id="ptc-wrap">
-  <h1>Test Diagnóstico: Eventos de Cámara y Reglas</h1>
+<div id="vapi-wrap">
+  <h1>Diagnóstico: Geotab Video REST API Client</h1>
 
-  <div class="ptc-bar">
-    <div class="ptc-field">
+  <div class="vapi-bar">
+    <div class="vapi-field">
       <label>Vehículo</label>
-      <select id="ptcDevice"><option value="">Cargando vehículos…</option></select>
+      <select id="vapiDevice"><option value="">Cargando vehículos…</option></select>
     </div>
-    <div class="ptc-field">
+    <div class="vapi-field">
       <label>Desde</label>
-      <input type="date" id="ptcFrom"/>
+      <input type="date" id="vapiFrom"/>
     </div>
-    <div class="ptc-field">
+    <div class="vapi-field">
       <label>Hasta</label>
-      <input type="date" id="ptcTo"/>
+      <input type="date" id="vapiTo"/>
     </div>
-    <button class="ptc-btn" id="ptcRun" disabled>Analizar Todo</button>
+    <button class="vapi-btn" id="vapiRun" disabled>Consultar Video API</button>
   </div>
 
-  <div id="ptcResults">
-    <div class="ptc-state">Selecciona vehículo y rango de fechas para iniciar el análisis global.</div>
+  <div id="vapiResults">
+    <div class="vapi-state">Selecciona vehículo y rango de fechas para iniciar el análisis REST.</div>
   </div>
 
-  <div id="ptcLog" class="ptc-log" style="display:none;"></div>
-  <button class="ptc-btn" id="ptcCopyLog" style="display:none;margin-top:8px;background:#fff;color:var(--accent);">Copiar log completo</button>
+  <div id="vapiLog" class="vapi-log" style="display:none;"></div>
+  <button class="vapi-btn" id="vapiCopyLog" style="display:none;margin-top:8px;background:#fff;color:var(--accent);">Copiar log completo</button>
 </div>
 
 <script>
 (function() {
 
     let api = null;
+    let videoBaseUrl = 'https://video.geotab.com/api/v1'; // Endpoint base por defecto del servicio de vídeo
+    let bearerToken = null;
     let devices = [];
 
     function log(msg) {
-        const el = document.getElementById('ptcLog');
+        const el = document.getElementById('vapiLog');
         el.style.display = 'block';
-        document.getElementById('ptcCopyLog').style.display = 'inline-flex';
+        document.getElementById('vapiCopyLog').style.display = 'inline-flex';
         el.textContent += msg + '\n';
-        console.log('[CameraTest]', msg);
+        console.log('[VideoRestAPI]', msg);
     }
 
-    function callApi(method, params) {
+    function callMyGeotab(method, params) {
         return new Promise((resolve, reject) => {
-            if (!api) return reject(new Error('API no inicializada'));
+            if (!api) return reject(new Error('API MyGeotab no inicializada'));
             api.call(method, params, resolve, reject);
         });
     }
 
-    // ── Obtener datos de la entidad Camera ──────────────────────────────
-    let _cameraCache = null;
-    async function getCameraForDevice(deviceId) {
-        if (!_cameraCache) {
-            try {
-                _cameraCache = await callApi('Get', { typeName: 'Camera' });
-                log(`Camera: ${_cameraCache ? _cameraCache.length : 0} cámaras en total en la base de datos.`);
-            } catch (e) {
-                log('ERROR cargando lista de Camera: ' + e.message);
-                _cameraCache = [];
-            }
-        }
-
-        const device = devices.find(d => d.id === deviceId);
-        if (!device || !device.serialNumber) {
-            log(`AVISO: No se encontró serialNumber para ${deviceId}.`);
-            return null;
-        }
-
-        const devSerialClean = device.serialNumber.trim().toUpperCase();
-
-        const match = _cameraCache.find(c => 
-            (c.deviceSerialNumber && c.deviceSerialNumber.trim().toUpperCase() === devSerialClean) ||
-            (c.device && c.device.id === deviceId)
-        );
-
-        if (!match) {
-            log(`AVISO: No se encontró registro en Camera para el GO con S/N ${device.serialNumber}.`);
-            return null;
-        }
-
-        log(`Cámara mapeada: ID=${match.id}, Serial=${match.cameraSerialNumber}, Dispositivo=${match.deviceSerialNumber}`);
-        return match;
-    }
-
-    // ── Consulta multicriterio de CameraEvent sin filtrar por tipo ─────
-    async function getAllCameraEvents(deviceId, fromDate, toDate) {
-        const cameraObj = await getCameraForDevice(deviceId);
-
-        const strategies = [
-            { 
-                name: 'Sin filtros de cámara (solo rango de fechas global)', 
-                search: { fromDate: fromDate, toDate: toDate } 
-            },
-            { 
-                name: 'deviceSearch en CameraEvent', 
-                search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate } 
-            }
-        ];
-
-        if (cameraObj) {
-            strategies.unshift(
-                { 
-                    name: 'cameraSearch por objeto ID', 
-                    search: { cameraSearch: { id: cameraObj.id }, fromDate: fromDate, toDate: toDate } 
-                },
-                { 
-                    name: 'cameraSearch por serialNumber', 
-                    search: { cameraSearch: { serialNumber: cameraObj.cameraSerialNumber }, fromDate: fromDate, toDate: toDate } 
-                }
-            );
-        }
-
-        let rawEvents = [];
-        let successStrat = null;
-
-        for (const strat of strategies) {
-            try {
-                log(`Probando consulta CameraEvent [${strat.name}]…`);
-                const res = await callApi('Get', { typeName: 'CameraEvent', search: strat.search });
-                log(`--> ÉXITO [${strat.name}]: ${res ? res.length : 0} eventos devueltos.`);
-                rawEvents = res || [];
-                successStrat = strat.name;
-                break;
-            } catch (e) {
-                log(`--> ERROR [${strat.name}]: ${e.message}`);
-            }
-        }
-
-        return { rawEvents, successStrat };
-    }
-
-    // ── Consulta secundaria en ExceptionEvent (Reglas de Geotab) ────────
-    async function getExceptionEvents(deviceId, fromDate, toDate) {
-        try {
-            log(`Consultando ExceptionEvent (reglas de infracción) para ${deviceId}…`);
-            const exceptions = await callApi('Get', {
-                typeName: 'ExceptionEvent',
-                search: {
-                    deviceSearch: { id: deviceId },
-                    fromDate: fromDate,
-                    toDate: toDate
-                }
+    function getMyGeotabSession() {
+        return new Promise((resolve, reject) => {
+            api.getSession((session) => {
+                if (session) resolve(session);
+                else reject(new Error('No se pudo obtener la sesión activa de MyGeotab'));
             });
-            log(`ExceptionEvent: ${exceptions ? exceptions.length : 0} eventos de regla encontrados.`);
-            return exceptions || [];
-        } catch (e) {
-            log(`ERROR consultando ExceptionEvent: ${e.message}`);
-            return [];
-        }
-    }
-
-    async function getTrips(deviceId, fromDate, toDate) {
-        return await callApi('Get', {
-            typeName: 'Trip',
-            search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate },
-            resultsLimit: 5000
         });
     }
 
+    // ── 1. Autenticación contra el Video REST API ────────────────────────
+    async function authenticateVideoApi() {
+        if (bearerToken) return bearerToken;
+
+        log('Obteniendo credenciales de sesión de MyGeotab…');
+        const session = await getMyGeotabSession();
+
+        log(`Autenticando en Video REST API para usuario: ${session.userName} / DB: ${session.database}…`);
+
+        const authPayload = {
+            database: session.database,
+            userName: session.userName,
+            sessionId: session.sessionId,
+            server: session.server || window.location.hostname
+        };
+
+        try {
+            const res = await fetch(`${videoBaseUrl}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(authPayload)
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`Error HTTP ${res.status}: ${errText}`);
+            }
+
+            const data = await res.json();
+            bearerToken = data.token || data.accessToken || data.jwt;
+            log('--> Autenticación en Video REST API EXITOSA.');
+            return bearerToken;
+        } catch (e) {
+            log('--> Error autenticando en Video REST API: ' + e.message);
+            throw e;
+        }
+    }
+
+    // ── 2. Petición genérica REST con Bearer Token ───────────────────────
+    async function fetchVideoApi(endpoint, queryParams = {}) {
+        const token = await authenticateVideoApi();
+        const url = new URL(`${videoBaseUrl}${endpoint}`);
+        
+        Object.keys(queryParams).forEach(k => {
+            if (queryParams[k] !== undefined && queryParams[k] !== null) {
+                url.searchParams.append(k, queryParams[k]);
+            }
+        });
+
+        log(`GET ${url.toString()}`);
+
+        const res = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Video API HTTP ${res.status}: ${txt}`);
+        }
+
+        return await res.json();
+    }
+
     async function loadDevices() {
-        const list = await callApi('Get', { typeName: 'Device', resultsLimit: 2000 });
-        devices = list;
-        const sel = document.getElementById('ptcDevice');
-        sel.innerHTML = '<option value="">Selecciona…</option>' +
-            list.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-        document.getElementById('ptcRun').disabled = false;
+        devices = await callMyGeotab('Get', { typeName: 'Device', resultsLimit: 2000 });
+        const sel = document.getElementById('vapiDevice');
+        sel.innerHTML = '<option value="">Selecciona vehículo…</option>' +
+            devices.map(d => `<option value="${d.id}">${d.name} (${d.serialNumber || 'Sin S/N'})</option>`).join('');
+        document.getElementById('vapiRun').disabled = false;
     }
 
     function fmtDateTime(d) {
         return new Date(d).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
     }
 
-    async function viewEvidence(eventId) {
-        try {
-            const result = await callApi('Get', { 
-                typeName: 'CameraEventRecording', 
-                search: { 
-                    eventId: [eventId],
-                    includeUnblurred: true 
-                } 
-            });
-            const rec = Array.isArray(result) ? result[0] : result;
-            const url = rec && (rec.mediaUrls ? (Array.isArray(rec.mediaUrls) ? rec.mediaUrls[0] : rec.mediaUrls) : rec.fileDownloadUrl);
-            
-            if (url) {
-                window.open(url, '_blank');
-            } else {
-                alert('Grabación no disponible para este evento.');
-            }
-        } catch (e) {
-            alert('Error en grabación: ' + e.message);
-        }
-    }
-    window.ptcViewEvidence = viewEvidence;
+    async function runAnalysis() {
+        const deviceId = document.getElementById('vapiDevice').value;
+        const fromInput = document.getElementById('vapiFrom').value;
+        const toInput = document.getElementById('vapiTo').value;
 
-    async function runComparison() {
-        const deviceId = document.getElementById('ptcDevice').value;
-        const fromInput = document.getElementById('ptcFrom').value;
-        const toInput = document.getElementById('ptcTo').value;
         if (!deviceId || !fromInput || !toInput) {
-            alert('Selecciona vehículo y ambas fechas.');
+            alert('Selecciona vehículo y fechas.');
             return;
         }
 
-        document.getElementById('ptcLog').textContent = '';
-        document.getElementById('ptcResults').innerHTML = '<div class="ptc-state">Analizando registros de cámara y reglas…</div>';
+        document.getElementById('vapiLog').textContent = '';
+        document.getElementById('vapiResults').innerHTML = '<div class="vapi-state">Consultando Video REST API…</div>';
 
+        const device = devices.find(d => d.id === deviceId);
         const fromDate = fromInput + 'T00:00:00.000Z';
         const toDate = toInput + 'T23:59:59.999Z';
 
         try {
-            log(`=== INICIO DIAGNÓSTICO PARA VEHÍCULO ${deviceId} ===`);
-            const trips = await getTrips(deviceId, fromDate, toDate);
-            log(`Viajes (Trips) recuperados: ${trips.length}`);
+            log(`=== CONSULTA REST VIDEO API PARA ${device.name} (${device.serialNumber}) ===`);
+            
+            // 1. Obtener viajes para contextualizar
+            const trips = await callMyGeotab('Get', {
+                typeName: 'Trip',
+                search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate }
+            });
+            log(`Viajes obtenidos: ${trips.length}`);
 
-            // 1. Petición amplia de CameraEvent
-            const { rawEvents, successStrat } = await getAllCameraEvents(deviceId, fromDate, toDate);
-
-            // Filtrar eventos pertenecientes al vehículo si la búsqueda devolvió globales
-            const deviceCamEvents = rawEvents.filter(ev => !ev.deviceId || ev.deviceId === deviceId);
-
-            // Extraer tipos de eventos únicos encontrados
-            const eventTypesFound = [...new Set(deviceCamEvents.map(ev => ev.eventType || 'Sin eventType'))];
-            log(`Tipos de evento de cámara distintos detectados: [${eventTypesFound.join(', ')}]`);
-
-            if (deviceCamEvents.length > 0) {
-                log('Muestra del primer CameraEvent recibido:');
-                log(JSON.stringify(deviceCamEvents[0], null, 2));
+            // 2. Consulta de eventos a la API REST de Vídeo
+            let cameraEvents = [];
+            try {
+                cameraEvents = await fetchVideoApi('/events', {
+                    deviceSerialNumber: device.serialNumber,
+                    fromDate: fromDate,
+                    toDate: toDate
+                });
+                log(`Eventos devueltos por Video API: ${Array.isArray(cameraEvents) ? cameraEvents.length : 0}`);
+            } catch (errApi) {
+                log(`Aviso al consultar /events: ${errApi.message}`);
+                // Intentar fallback endpoint alternativo
+                try {
+                    cameraEvents = await fetchVideoApi(`/devices/${device.serialNumber}/events`, {
+                        fromDate: fromDate,
+                        toDate: toDate
+                    });
+                } catch (err2) {
+                    log(`Falló también endpoint alternativo: ${err2.message}`);
+                }
             }
 
-            // 2. Consulta paralela de ExceptionEvents
-            const exceptions = await getExceptionEvents(deviceId, fromDate, toDate);
-
-            renderResults(trips, deviceCamEvents, exceptions, eventTypesFound, successStrat);
+            renderResults(trips, Array.isArray(cameraEvents) ? cameraEvents : []);
         } catch (e) {
             log('ERROR GENERAL: ' + e.message);
-            document.getElementById('ptcResults').innerHTML =
-                `<div class="ptc-state" style="color:var(--danger);">Error: ${e.message}</div>`;
+            document.getElementById('vapiResults').innerHTML =
+                `<div class="vapi-state" style="color:var(--danger);">Error: ${e.message}</div>`;
         }
     }
 
-    function renderResults(trips, camEvents, exceptions, eventTypesFound, successStrat) {
+    function renderResults(trips, cameraEvents) {
         let html = `
-        <div class="ptc-summary">
-            <div class="ptc-metric"><div class="lbl">Viajes</div><div class="val">${trips.length}</div></div>
-            <div class="ptc-metric"><div class="lbl">Eventos Cámara</div><div class="val" style="color:var(--accent);">${camEvents.length}</div></div>
-            <div class="ptc-metric"><div class="lbl">Reglas (ExceptionEvent)</div><div class="val" style="color:var(--ok);">${exceptions.length}</div></div>
-        </div>
-        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;">
-            <strong>Diagnóstico de API:</strong><br>
-            • Método funcional de CameraEvent: <code>${successStrat || 'Ninguno (Error de API)'}</code><br>
-            • Tipos de eventos hallados: <code>${eventTypesFound.length ? eventTypesFound.join(', ') : 'Ninguno'}</code>
+        <div class="vapi-summary">
+            <div class="vapi-metric"><div class="lbl">Viajes</div><div class="val">${trips.length}</div></div>
+            <div class="vapi-metric"><div class="lbl">Eventos REST Vídeo</div><div class="val" style="color:var(--accent);">${cameraEvents.length}</div></div>
         </div>
         <table>
         <thead><tr>
-            <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Eventos Cámara Detectados</th><th>Evidencia</th>
+            <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Eventos Cámara Detectados</th><th>Acciones</th>
         </tr></thead><tbody>`;
 
         trips.sort((a,b) => new Date(b.start || b.startTime) - new Date(a.start || a.startTime));
@@ -308,34 +257,30 @@
             const tStart = new Date(start).getTime();
             const tStop = new Date(stop).getTime();
 
-            const evsInTrip = camEvents.filter(ev => {
-                const evT = new Date(ev.eventStart || ev.dateTime).getTime();
+            const evsInTrip = cameraEvents.filter(ev => {
+                const evT = new Date(ev.timestamp || ev.dateTime || ev.eventStart).getTime();
                 return evT >= tStart && evT <= tStop;
             });
 
-            const typesList = evsInTrip.map(e => e.eventType).join(', ');
+            const typesList = evsInTrip.map(e => e.type || e.eventType || 'Evento').join(', ');
             const badge = evsInTrip.length > 0
                 ? `<span class="pill pill-danger">🎥 ${evsInTrip.length} (${typesList})</span>`
                 : `<span class="pill pill-ok">Sin eventos</span>`;
-
-            const link = evsInTrip.length > 0
-                ? `<a href="#" class="ptc-link" onclick="event.preventDefault();ptcViewEvidence('${evsInTrip[0].id}')">Ver grabación</a>`
-                : '';
 
             html += `<tr>
                 <td>${fmtDateTime(start).split(' ')[0]}</td>
                 <td>${fmtDateTime(start)}</td>
                 <td>${fmtDateTime(stop)}</td>
                 <td>${badge}</td>
-                <td>${link}</td>
+                <td>${evsInTrip.length > 0 ? `<span class="vapi-link" onclick="alert('ID Evento: ${evsInTrip[0].id}')">Ver detalle</span>` : '—'}</td>
             </tr>`;
         });
 
         html += '</tbody></table>';
-        document.getElementById('ptcResults').innerHTML = html;
+        document.getElementById('vapiResults').innerHTML = html;
     }
 
-    // ── Registro del Add-in ───────────────────────────────────────────
+    // ── Registration ───────────────────────────────────────────────────
     if (typeof geotab === 'undefined') {
         window.geotab = { addin: {} };
     }
@@ -344,11 +289,11 @@
         return {
             initialize: function(geotabApi, geotabState, callback) {
                 api = geotabApi;
-                loadDevices().catch(e => log('ERROR cargando vehículos: ' + e.message));
-                document.getElementById('ptcRun').addEventListener('click', runComparison);
-                const copyBtn = document.getElementById('ptcCopyLog');
+                loadDevices().catch(e => log('Error cargando lista de vehículos: ' + e.message));
+                document.getElementById('vapiRun').addEventListener('click', runAnalysis);
+                const copyBtn = document.getElementById('vapiCopyLog');
                 copyBtn.addEventListener('click', () => {
-                    const text = document.getElementById('ptcLog').textContent;
+                    const text = document.getElementById('vapiLog').textContent;
                     navigator.clipboard.writeText(text).then(() => {
                         copyBtn.textContent = '¡Copiado!';
                         setTimeout(() => { copyBtn.textContent = 'Copiar log completo'; }, 1500);
