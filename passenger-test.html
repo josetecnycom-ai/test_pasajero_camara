@@ -91,9 +91,9 @@
         });
     }
 
-    // ── Resolver el número de serie de cámara del vehículo ──────────────
+    // ── Obtener la entidad Camera vinculada al vehículo ─────────────────
     let _cameraCache = null;
-    async function getCameraSerialForDevice(deviceId) {
+    async function getCameraForDevice(deviceId) {
         if (!_cameraCache) {
             try {
                 _cameraCache = await callApi('Get', { typeName: 'Camera' });
@@ -113,7 +113,8 @@
         const devSerialClean = device.serialNumber.trim().toUpperCase();
 
         const match = _cameraCache.find(c => 
-            c.deviceSerialNumber && c.deviceSerialNumber.trim().toUpperCase() === devSerialClean
+            (c.deviceSerialNumber && c.deviceSerialNumber.trim().toUpperCase() === devSerialClean) ||
+            (c.device && c.device.id === deviceId)
         );
 
         if (!match) {
@@ -121,43 +122,48 @@
             return null;
         }
 
-        log(`Cámara encontrada para ${deviceId}: ${match.cameraSerialNumber}`);
-        return match.cameraSerialNumber || null;
+        log(`Cámara encontrada para ${deviceId}: ID=${match.id}, Serial=${match.cameraSerialNumber}`);
+        return match;
     }
 
-    // ── Descarga de CameraEvent ──────────────────────────────────────
+    // ── Descarga de CameraEvent con estrategia multicam ────────────────
     async function getPassengerEvents(deviceId, fromDate, toDate) {
-        const cameraSerial = await getCameraSerialForDevice(deviceId);
+        const cameraObj = await getCameraForDevice(deviceId);
 
-        // Primero se usa deviceSearch (formato nativo de la API MyGeotab JS SDK)
-        let search = {
-            deviceSearch: { id: deviceId },
-            fromDate: fromDate,
-            toDate: toDate
-        };
+        if (!cameraObj) {
+            log('ABORTANDO consulta CameraEvent: No hay cámara vinculada.');
+            return [];
+        }
 
-        let raw;
-        try {
-            log(`Pidiendo CameraEvent usando deviceSearch para el vehículo ${deviceId}…`);
-            raw = await callApi('Get', { typeName: 'CameraEvent', search: search });
-            log(`CameraEvent: ${raw ? raw.length : 0} resultados recibidos de la API`);
-        } catch (e) {
-            log('Aviso con deviceSearch: ' + e.message + '. Probando búsqueda con cameraSerialNumber (singular)…');
-            if (cameraSerial) {
-                try {
-                    search = {
-                        cameraSerialNumber: cameraSerial,
-                        fromDate: fromDate,
-                        toDate: toDate
-                    };
-                    raw = await callApi('Get', { typeName: 'CameraEvent', search: search });
-                    log(`CameraEvent (fallback): ${raw ? raw.length : 0} resultados recibidos`);
-                } catch (e2) {
-                    log('ERROR CameraEvent: ' + e2.message);
-                    return [];
-                }
-            } else {
-                return [];
+        // Variantes de filtrado para asegurar compatibilidad con el motor de Geotab
+        const strategies = [
+            { 
+                name: 'cameraSearch con ID de la entidad Camera', 
+                search: { cameraSearch: { id: cameraObj.id }, fromDate: fromDate, toDate: toDate } 
+            },
+            { 
+                name: 'cameraSearch con serialNumber de cámara', 
+                search: { cameraSearch: { serialNumber: cameraObj.cameraSerialNumber }, fromDate: fromDate, toDate: toDate } 
+            },
+            { 
+                name: 'cameraSearch con deviceSearch', 
+                search: { cameraSearch: { deviceSearch: { id: deviceId } }, fromDate: fromDate, toDate: toDate } 
+            },
+            { 
+                name: 'cameras (array) con ID', 
+                search: { cameras: [{ id: cameraObj.id }], fromDate: fromDate, toDate: toDate } 
+            }
+        ];
+
+        let raw = null;
+        for (const strat of strategies) {
+            try {
+                log(`Probando consulta CameraEvent (${strat.name})…`);
+                raw = await callApi('Get', { typeName: 'CameraEvent', search: strat.search });
+                log(`¡Éxito con ${strat.name}! Se recibieron ${raw ? raw.length : 0} resultados.`);
+                break;
+            } catch (e) {
+                log(`Falló (${strat.name}): ${e.message}`);
             }
         }
 
@@ -171,8 +177,8 @@
 
         return filtered.map(ev => ({
             id: ev.id,
-            deviceId: ev.deviceId,
-            eventStart: ev.eventStart,
+            deviceId: ev.deviceId || deviceId,
+            eventStart: ev.eventStart || ev.dateTime,
             eventEnd: ev.eventEnd,
             raw: ev
         }));
