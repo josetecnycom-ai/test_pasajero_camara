@@ -35,7 +35,7 @@
     background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
     padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
-  .gt-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 180px; }
+  .gt-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
   .gt-field label { font-size: 11px; font-weight: 600; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.5px; }
   .gt-field select, .gt-field input {
     height: 36px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 10px; font-size: 13px; outline: none; background: #fff;
@@ -78,10 +78,14 @@
       <select id="selDevice"><option value="">Cargando vehículos…</option></select>
     </div>
     <div class="gt-field">
+      <label>S/N Cámara *</label>
+      <input type="text" id="inpCameraSn" placeholder="Ej: GEU6Z0Z8CKT4" value="GEU6Z0Z8CKT4"/>
+    </div>
+    <div class="gt-field">
       <label>Tipo de Evento</label>
       <select id="selEventType">
-        <option value="ALL">-- Todos los eventos de cámara --</option>
-        <option value="Passenger.Disallowed" selected>🚫 Passenger.Disallowed (Pasajero no permitido)</option>
+        <option value="ALL">-- Todos los eventos --</option>
+        <option value="Passenger.Disallowed" selected>🚫 Passenger.Disallowed (Pasajero)</option>
         <option value="Speed.Sign.Detected">🛑 Speed.Sign.Detected</option>
       </select>
     </div>
@@ -97,7 +101,7 @@
   </div>
 
   <div id="gtResults">
-    <div class="gt-empty">Selecciona vehículo y rango de fechas para consultar.</div>
+    <div class="gt-empty">Selecciona vehículo, introduce S/N de la cámara y rango de fechas.</div>
   </div>
 
   <div id="gtLog" class="gt-log" style="display:none;"></div>
@@ -140,18 +144,13 @@
 
     async function executeQuery() {
         const deviceId = document.getElementById('selDevice').value;
+        const cameraSn = document.getElementById('inpCameraSn').value.trim();
         const eventTypeFilter = document.getElementById('selEventType').value;
         const fromVal = document.getElementById('inpFrom').value;
         const toVal = document.getElementById('inpTo').value;
 
-        if (!deviceId || !fromVal || !toVal) {
-            alert('Por favor selecciona vehículo y el rango de fechas.');
-            return;
-        }
-
-        const selectedDevice = devices.find(d => d.id === deviceId);
-        if (!selectedDevice) {
-            alert('No se pudo encontrar la información del vehículo seleccionado.');
+        if (!deviceId || !cameraSn || !fromVal || !toVal) {
+            alert('Por favor selecciona vehículo, introduce el S/N de la cámara y el rango de fechas.');
             return;
         }
 
@@ -160,9 +159,9 @@
         const toDate = toVal + 'T23:59:59.999Z';
 
         try {
-            log(`Consultando CameraEvent en rango [${fromDate} - ${toDate}]`);
+            log(`Consultando CameraEvent para cámara [${cameraSn}] en rango [${fromDate} - ${toDate}]`);
             
-            // 1. Consultar Viajes del vehículo y CameraEvent solo con rango de fechas
+            // Peticiones paralelas: Viajes por vehículo y CameraEvent por cámara
             const [trips, cameraEvents] = await Promise.all([
                 callApi('Get', {
                     typeName: 'Trip',
@@ -172,26 +171,21 @@
                 callApi('Get', {
                     typeName: 'CameraEvent',
                     search: {
+                        cameraSerialNumbers: [cameraSn],
                         fromDate: fromDate,
                         toDate: toDate
                     }
                 })
             ]);
 
-            log(`Petición API con éxito. Eventos de cámara recibidos: ${cameraEvents.length}`);
+            log(`Éxito API: ${trips.length} viajes y ${cameraEvents.length} eventos de cámara obtenidos.`);
 
-            // 2. Filtrar en JS los eventos correspondientes al vehículo seleccionado (deviceId o deviceSerialNumber)
-            const devEvents = cameraEvents.filter(e => 
-                e.deviceId === deviceId || 
-                (selectedDevice.serialNumber && e.deviceSerialNumber === selectedDevice.serialNumber)
-            );
-
-            // 3. Filtrar por tipo de evento si no es "ALL"
+            // Filtrar por el tipo de evento seleccionado
             const filteredEvents = eventTypeFilter === 'ALL'
-                ? devEvents
-                : devEvents.filter(e => e.eventType === eventTypeFilter);
+                ? cameraEvents
+                : cameraEvents.filter(e => e.eventType === eventTypeFilter);
 
-            // 4. Cruzar viajes con los eventos filtrados
+            // Cruzar viajes con eventos según la marca de tiempo
             const enrichedTrips = trips.map(t => {
                 const tStart = new Date(t.start || t.startTime).getTime();
                 const tStop = new Date(t.stop || t.stopTime).getTime();
@@ -204,7 +198,7 @@
                 return { trip: t, events: tripEvents };
             });
 
-            renderResults(enrichedTrips, filteredEvents, devEvents);
+            renderResults(enrichedTrips, filteredEvents, cameraEvents);
         } catch (e) {
             log('Error ejecutando consulta CameraEvent: ' + (e.message || JSON.stringify(e)));
             document.getElementById('gtResults').innerHTML = 
@@ -212,12 +206,12 @@
         }
     }
 
-    function renderResults(enriched, filteredEvents, allDevEvents) {
+    function renderResults(enriched, filteredEvents, allEvents) {
         const tripsWithEvents = enriched.filter(e => e.events.length > 0).length;
         const totalTrips = enriched.length;
 
         const eventCounts = {};
-        allDevEvents.forEach(e => {
+        allEvents.forEach(e => {
             eventCounts[e.eventType] = (eventCounts[e.eventType] || 0) + 1;
         });
 
@@ -226,11 +220,11 @@
             <div class="gt-card"><div class="lbl">Viajes Analizados</div><div class="val">${totalTrips}</div></div>
             <div class="gt-card"><div class="lbl">Viajes con Evento</div><div class="val" style="color:var(--danger);">${tripsWithEvents}</div></div>
             <div class="gt-card"><div class="lbl">Eventos Coincidentes</div><div class="val" style="color:var(--accent);">${filteredEvents.length}</div></div>
-            <div class="gt-card"><div class="lbl">Total Eventos Vehículo</div><div class="val">${allDevEvents.length}</div></div>
+            <div class="gt-card"><div class="lbl">Total Eventos Cámara</div><div class="val">${allEvents.length}</div></div>
         </div>
 
         <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;">
-            <strong>Tipos de Evento Detectados en este Vehículo:</strong>
+            <strong>Tipos de Evento Detectados por la Cámara:</strong>
             <ul style="margin:8px 0 0;padding-left:20px;font-size:12px;color:var(--ink);">`;
 
         const keys = Object.keys(eventCounts);
@@ -293,7 +287,7 @@
             });
         }
 
-        html += '</tbody></table></div>';
+        html += '</tbody>mtable></div>';
         document.getElementById('gtResults').innerHTML = html;
     }
 
