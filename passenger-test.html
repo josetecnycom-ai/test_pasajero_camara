@@ -26,145 +26,56 @@
   }
   #gt-addin * { box-sizing: border-box; }
   
-  .gt-header {
-    margin-bottom: 20px;
-  }
-  .gt-header h1 {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 4px;
-    color: var(--ink);
-  }
-  .gt-header p {
-    margin: 0;
-    color: var(--ink-light);
-    font-size: 12px;
-  }
+  .gt-header { margin-bottom: 20px; }
+  .gt-header h1 { font-size: 18px; font-weight: 700; margin: 0 0 4px; color: var(--ink); }
+  .gt-header p { margin: 0; color: var(--ink-light); font-size: 12px; }
 
   .gt-filter-bar {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    background: #ffffff;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+    background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
-  .gt-field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-    min-width: 180px;
-  }
-  .gt-field label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--ink-light);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
+  .gt-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 180px; }
+  .gt-field label { font-size: 11px; font-weight: 600; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.5px; }
   .gt-field select, .gt-field input {
-    height: 36px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    padding: 0 10px;
-    font-size: 13px;
-    outline: none;
-    background: #fff;
-  }
-  .gt-field select:focus, .gt-field input:focus {
-    border-color: var(--accent);
+    height: 36px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 10px; font-size: 13px; outline: none; background: #fff;
   }
   
   .gt-btn {
-    height: 36px;
-    padding: 0 20px;
-    border-radius: 6px;
-    border: none;
-    background: var(--accent);
-    color: #ffffff;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.15s ease;
+    height: 36px; padding: 0 20px; border-radius: 6px; border: none;
+    background: var(--accent); color: #ffffff; font-weight: 600; font-size: 13px; cursor: pointer;
   }
   .gt-btn:hover { background: var(--accent-hover); }
   .gt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .gt-metrics {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-  .gt-card {
-    background: #ffffff;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 16px;
-  }
+  .gt-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .gt-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
   .gt-card .lbl { font-size: 11px; font-weight: 600; color: var(--ink-light); text-transform: uppercase; }
   .gt-card .val { font-size: 22px; font-weight: 700; margin-top: 4px; }
 
-  .gt-table-container {
-    background: #ffffff;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-  }
+  .gt-table-container { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
   table { width: 100%; border-collapse: collapse; text-align: left; }
   th, td { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; }
   th { background: var(--surface); font-weight: 600; color: var(--ink-light); text-transform: uppercase; font-size: 10px; }
-  tr:last-child td { border-bottom: none; }
   
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-  }
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
   .pill-ok { background: var(--ok-bg); color: var(--ok); }
   .pill-danger { background: var(--danger-bg); color: var(--danger); }
   
-  .gt-link { color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; }
-  .gt-link:hover { text-decoration: underline; }
   .gt-empty { padding: 40px; text-align: center; color: var(--ink-light); }
-  
-  .gt-log {
-    margin-top: 20px;
-    padding: 12px;
-    background: #0f172a;
-    color: #38bdf8;
-    font-family: monospace;
-    font-size: 11px;
-    border-radius: 6px;
-    max-height: 200px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-  }
+  .gt-log { margin-top: 20px; padding: 12px; background: #0f172a; color: #38bdf8; font-family: monospace; font-size: 11px; border-radius: 6px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
 </style>
 
 <div id="gt-addin">
   <div class="gt-header">
     <h1>Informe de Infracciones de Cámara y Pasajeros</h1>
-    <p>Cruce de viajes con reglas de visión artificial y grabaciones asociadas</p>
+    <p>Detección automática de reglas asociadas a eventos de excepción</p>
   </div>
 
   <div class="gt-filter-bar">
     <div class="gt-field">
       <label>Vehículo</label>
       <select id="selDevice"><option value="">Cargando vehículos…</option></select>
-    </div>
-    <div class="gt-field">
-      <label>Filtro de Regla</label>
-      <select id="selRule"><option value="ALL">Cargando reglas…</option></select>
     </div>
     <div class="gt-field">
       <label>Desde</label>
@@ -174,11 +85,11 @@
       <label>Hasta</label>
       <input type="date" id="inpTo"/>
     </div>
-    <button class="gt-btn" id="btnConsult" disabled>Buscar</button>
+    <button class="gt-btn" id="btnConsult" disabled>Analizar Infracciones</button>
   </div>
 
   <div id="gtResults">
-    <div class="gt-empty">Selecciona vehículo, regla y rango de fechas para consultar.</div>
+    <div class="gt-empty">Selecciona vehículo y rango de fechas para consultar.</div>
   </div>
 
   <div id="gtLog" class="gt-log" style="display:none;"></div>
@@ -188,7 +99,7 @@
 (function() {
     let api = null;
     let devices = [];
-    let rulesMap = new Map();
+    let knownRules = new Map();
 
     function log(msg) {
         const el = document.getElementById('gtLog');
@@ -205,105 +116,43 @@
     }
 
     async function loadInitialData() {
-        // Set dates default (últimos 7 días)
         const today = new Date();
         const past = new Date();
         past.setDate(today.getDate() - 7);
         document.getElementById('inpTo').value = today.toISOString().split('T')[0];
         document.getElementById('inpFrom').value = past.toISOString().split('T')[0];
 
-        // 1. Cargar Vehículos
+        // Cargar Vehículos
         devices = await callApi('Get', { typeName: 'Device', resultsLimit: 2000 });
         const devSel = document.getElementById('selDevice');
         devSel.innerHTML = '<option value="">Selecciona vehículo…</option>' +
             devices.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
 
-        // 2. Cargar Reglas (Destacar reglas de Cámara e Inteligencia Artificial)
-        try {
-            const rules = await callApi('Get', { typeName: 'Rule' });
-            rulesMap.clear();
-
-            const ruleSel = document.getElementById('selRule');
-            let cameraRulesHtml = '';
-            let otherRulesHtml = '';
-
-            rules.forEach(r => {
-                rulesMap.set(r.id, r.name || 'Regla sin nombre');
-                const nameLower = (r.name || '').toLowerCase();
-                
-                const isCameraRule = nameLower.includes('pasajer') || nameLower.includes('passenger') ||
-                                     nameLower.includes('camara') || nameLower.includes('camera') ||
-                                     nameLower.includes('distrac') || nameLower.includes('fumar') ||
-                                     nameLower.includes('phone') || nameLower.includes('movil') ||
-                                     nameLower.includes('cinturon') || nameLower.includes('belt');
-
-                const optionHtml = `<option value="${r.id}">${r.name}</option>`;
-                if (isCameraRule) {
-                    cameraRulesHtml += `<option value="${r.id}">📷 ${r.name}</option>`;
-                } else {
-                    otherRulesHtml += optionHtml;
-                }
-            });
-
-            let fullHtml = '<option value="ALL">-- TODAS LAS REGLAS --</option>';
-            if (cameraRulesHtml) {
-                fullHtml += `<optgroup label="Reglas de Cámara / IA">${cameraRulesHtml}</optgroup>`;
-            }
-            if (otherRulesHtml) {
-                fullHtml += `<optgroup label="Otras Reglas">${otherRulesHtml}</optgroup>`;
-            }
-
-            ruleSel.innerHTML = fullHtml;
-            log(`Reglas cargadas: ${rules.length} total.`);
-        } catch (e) {
-            log('Error cargando catálogo de reglas: ' + e.message);
-        }
-
         document.getElementById('btnConsult').disabled = false;
     }
 
-    async function getTrips(deviceId, fromDate, toDate) {
-        return await callApi('Get', {
-            typeName: 'Trip',
-            search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate },
-            resultsLimit: 5000
-        });
-    }
+    async function resolveRuleNames(ruleIds) {
+        const missingIds = ruleIds.filter(id => !knownRules.has(id));
+        if (missingIds.length === 0) return;
 
-    async function getExceptionEvents(deviceId, ruleId, fromDate, toDate) {
-        const search = {
-            deviceSearch: { id: deviceId },
-            fromDate: fromDate,
-            toDate: toDate
-        };
-        if (ruleId && ruleId !== 'ALL') {
-            search.ruleSearch = { id: ruleId };
+        log(`Resolviendo nombres para ${missingIds.length} regla(s) detectada(s)…`);
+        
+        for (const id of missingIds) {
+            try {
+                const res = await callApi('Get', { typeName: 'Rule', search: { id: id } });
+                if (res && res.length > 0 && res[0].name) {
+                    knownRules.set(id, res[0].name);
+                } else {
+                    knownRules.set(id, `Regla del Sistema (${id})`);
+                }
+            } catch (e) {
+                knownRules.set(id, `Regla (${id})`);
+            }
         }
-        return await callApi('Get', { typeName: 'ExceptionEvent', search: search }) || [];
-    }
-
-    async function getMediaFiles(deviceId, fromDate, toDate) {
-        try {
-            return await callApi('Get', {
-                typeName: 'MediaFile',
-                search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate }
-            }) || [];
-        } catch (e) {
-            log('MediaFile no soportado o sin permisos: ' + e.message);
-            return [];
-        }
-    }
-
-    function fmtDateTime(d) {
-        if (!d) return '—';
-        return new Date(d).toLocaleString('es-ES', { 
-            day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' 
-        });
     }
 
     async function executeQuery() {
         const deviceId = document.getElementById('selDevice').value;
-        const ruleId = document.getElementById('selRule').value;
         const fromVal = document.getElementById('inpFrom').value;
         const toVal = document.getElementById('inpTo').value;
 
@@ -312,22 +161,36 @@
             return;
         }
 
-        document.getElementById('gtResults').innerHTML = '<div class="gt-empty">Procesando datos del vehículo…</div>';
+        document.getElementById('gtResults').innerHTML = '<div class="gt-empty">Obteniendo viajes e infracciones de excepción…</div>';
         const fromDate = fromVal + 'T00:00:00.000Z';
         const toDate = toVal + 'T23:59:59.999Z';
 
         try {
             log(`Consultando vehículo ${deviceId} desde ${fromDate} hasta ${toDate}`);
             
-            const [trips, exceptions, mediaFiles] = await Promise.all([
-                getTrips(deviceId, fromDate, toDate),
-                getExceptionEvents(deviceId, ruleId, fromDate, toDate),
-                getMediaFiles(deviceId, fromDate, toDate)
+            // 1. Obtener viajes y todas las excepciones
+            const [trips, exceptions] = await Promise.all([
+                callApi('Get', {
+                    typeName: 'Trip',
+                    search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate },
+                    resultsLimit: 5000
+                }),
+                callApi('Get', {
+                    typeName: 'ExceptionEvent',
+                    search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate }
+                })
             ]);
 
-            log(`Resultados: ${trips.length} viajes, ${exceptions.length} infracciones, ${mediaFiles.length} archivos multimedia.`);
+            log(`Petición finalizada: ${trips.length} viajes, ${exceptions.length} eventos de excepción encontrados.`);
 
-            // Enriquecer viajes cruzando fechas de excepción
+            // 2. Extraer todos los IDs de regla únicos que realmente han generado eventos
+            const uniqueRuleIds = [...new Set(exceptions.map(ex => ex.rule ? ex.rule.id : null).filter(Boolean))];
+            log(`IDs de reglas únicos extraídos directamente de los eventos: [${uniqueRuleIds.join(', ')}]`);
+
+            // 3. Resolver los nombres de esas reglas específicas
+            await resolveRuleNames(uniqueRuleIds);
+
+            // 4. Cruzar viajes con infracciones
             const enrichedTrips = trips.map(t => {
                 const tStart = new Date(t.start || t.startTime).getTime();
                 const tStop = new Date(t.stop || t.stopTime).getTime();
@@ -337,23 +200,18 @@
                     return exStart >= tStart && exStart <= tStop;
                 });
 
-                const tripMedia = mediaFiles.filter(m => {
-                    const mTime = new Date(m.dateTime || m.fromDate).getTime();
-                    return mTime >= tStart && mTime <= tStop;
-                });
-
-                return { trip: t, exceptions: tripExceptions, media: tripMedia };
+                return { trip: t, exceptions: tripExceptions };
             });
 
-            renderResults(enrichedTrips, exceptions.length);
+            renderResults(enrichedTrips, exceptions, uniqueRuleIds);
         } catch (e) {
-            log('Error al ejecutar consulta: ' + e.message);
+            log('Error en consulta: ' + e.message);
             document.getElementById('gtResults').innerHTML = 
-                `<div class="gt-empty" style="color:var(--danger)">Error al obtener los datos: ${e.message}</div>`;
+                `<div class="gt-empty" style="color:var(--danger)">Error: ${e.message}</div>`;
         }
     }
 
-    function renderResults(enriched, totalExceptions) {
+    function renderResults(enriched, allExceptions, uniqueRuleIds) {
         const tripsWithInfraction = enriched.filter(e => e.exceptions.length > 0).length;
         const totalTrips = enriched.length;
 
@@ -361,9 +219,22 @@
         <div class="gt-metrics">
             <div class="gt-card"><div class="lbl">Viajes Totales</div><div class="val">${totalTrips}</div></div>
             <div class="gt-card"><div class="lbl">Con Infracción</div><div class="val" style="color:var(--danger);">${tripsWithInfraction}</div></div>
-            <div class="gt-card"><div class="lbl">Sin Infracción</div><div class="val" style="color:var(--ok);">${totalTrips - tripsWithInfraction}</div></div>
-            <div class="gt-card"><div class="lbl">Total Infracciones</div><div class="val" style="color:var(--accent);">${totalExceptions}</div></div>
+            <div class="gt-card"><div class="lbl">Total Infracciones</div><div class="val" style="color:var(--accent);">${allExceptions.length}</div></div>
+            <div class="gt-card"><div class="lbl">Tipos de Regla Detectados</div><div class="val">${uniqueRuleIds.length}</div></div>
         </div>
+
+        <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+            <strong>Desglose de Reglas Ocurridas en este Vehículo:</strong>
+            <ul style="margin:8px 0 0;padding-left:20px;font-size:12px;color:var(--ink);">`;
+
+        uniqueRuleIds.forEach(id => {
+            const count = allExceptions.filter(e => e.rule && e.rule.id === id).length;
+            const name = knownRules.get(id) || id;
+            html += `<li><strong>${name}</strong> (ID: <code>${id}</code>) — <strong>${count}</strong> eventos</li>`;
+        });
+
+        html += `</ul></div>
+
         <div class="gt-table-container">
         <table>
         <thead>
@@ -372,14 +243,13 @@
                 <th>Hora Fin</th>
                 <th>Distancia</th>
                 <th>Estado</th>
-                <th>Infracciones Detectadas</th>
-                <th>Grabaciones</th>
+                <th>Detalle de Reglas Ocurridas</th>
             </tr>
         </thead>
         <tbody>`;
 
         if (enriched.length === 0) {
-            html += `<tr><td colspan="6" style="text-align:center;padding:20px;">No se encontraron viajes en el periodo seleccionado.</td></tr>`;
+            html += `<tr><td colspan="5" style="text-align:center;padding:20px;">No se encontraron viajes en el periodo seleccionado.</td></tr>`;
         } else {
             enriched.sort((a,b) => new Date(b.trip.start || b.trip.startTime) - new Date(a.trip.start || a.trip.startTime));
 
@@ -389,13 +259,12 @@
                 const stop = t.stop || t.stopTime;
                 const dist = (t.distance || 0).toFixed(1);
 
-                // Conteo de reglas por tipo
                 let rulesSummary = '—';
                 if (item.exceptions.length > 0) {
                     const ruleCounts = {};
                     item.exceptions.forEach(ex => {
-                        const rId = ex.rule ? ex.rule.id : 'unknown';
-                        const name = rulesMap.get(rId) || rId;
+                        const rId = ex.rule ? ex.rule.id : 'desconocida';
+                        const name = knownRules.get(rId) || rId;
                         ruleCounts[name] = (ruleCounts[name] || 0) + 1;
                     });
                     rulesSummary = Object.entries(ruleCounts)
@@ -407,17 +276,12 @@
                     ? `<span class="pill pill-danger">⚠️ ${item.exceptions.length} evento(s)</span>`
                     : `<span class="pill pill-ok">✓ Limpio</span>`;
 
-                const mediaBtn = item.media.length > 0
-                    ? `<span class="gt-link" onclick="alert('Se encontraron ${item.media.length} archivos multimedia asociados.')">🎥 ${item.media.length} clip(s)</span>`
-                    : '<span style="color:#94a3b8;">Sin vídeo</span>';
-
                 html += `<tr>
-                    <td>${fmtDateTime(start)}</td>
-                    <td>${fmtDateTime(stop)}</td>
+                    <td>${new Date(start).toLocaleString('es-ES')}</td>
+                    <td>${new Date(stop).toLocaleString('es-ES')}</td>
                     <td>${dist} km</td>
                     <td>${badge}</td>
                     <td>${rulesSummary}</td>
-                    <td>${mediaBtn}</td>
                 </tr>`;
             });
         }
@@ -426,7 +290,6 @@
         document.getElementById('gtResults').innerHTML = html;
     }
 
-    // ── Registro del Add-in de Geotab ────────────────────────────────
     if (typeof geotab === 'undefined') {
         window.geotab = { addin: {} };
     }
@@ -435,7 +298,7 @@
         return {
             initialize: function(geotabApi, geotabState, callback) {
                 api = geotabApi;
-                loadInitialData().catch(e => log('Error en inicialización: ' + e.message));
+                loadInitialData().catch(e => log('Error inicializando: ' + e.message));
                 document.getElementById('btnConsult').addEventListener('click', executeQuery);
                 callback();
             },
