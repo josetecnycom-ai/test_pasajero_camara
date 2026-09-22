@@ -3,120 +3,85 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Control de Eventos de Cámara y Pasajeros</title>
+<title>Test Pasajero Cámara</title>
 </head>
 <body style="margin:0;padding:0;background:transparent;">
 <style>
-  #gt-addin {
-    --ink: #1e293b;
-    --ink-light: #64748b;
-    --border: #e2e8f0;
-    --accent: #2563eb;
-    --accent-hover: #1d4ed8;
-    --ok: #16a34a;
-    --ok-bg: #dcfce7;
-    --danger: #dc2626;
-    --danger-bg: #fee2e2;
-    --surface: #f8fafc;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    font-size: 13px;
-    color: var(--ink);
-    padding: 20px;
-    max-width: 1200px;
+  #ptc-wrap {
+    --ink:#1a1a2e; --ink-mid:#4a4a6a; --border:#e2e2ee; --accent:#3d5af1;
+    --ok:#1a9e6e; --danger:#dc2626; --surface:#f7f7fb;
+    font-family:'Inter',system-ui,-apple-system,sans-serif; font-size:14px; color:var(--ink);
+    padding:20px 24px; max-width:1100px;
   }
-  #gt-addin * { box-sizing: border-box; }
-  
-  .gt-header { margin-bottom: 20px; }
-  .gt-header h1 { font-size: 18px; font-weight: 700; margin: 0 0 4px; color: var(--ink); }
-  .gt-header p { margin: 0; color: var(--ink-light); font-size: 12px; }
-
-  .gt-filter-bar {
-    display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
-    background: #ffffff; border: 1px solid var(--border); border-radius: 8px;
-    padding: 16px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  #ptc-wrap * { box-sizing:border-box; }
+  #ptc-wrap h1 { font-size:16px; margin:0 0 16px; }
+  .ptc-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:18px;
+    background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .ptc-field { display:flex; flex-direction:column; gap:4px; }
+  .ptc-field label { font-size:11px; font-weight:600; color:var(--ink-mid); text-transform:uppercase; }
+  .ptc-field select, .ptc-field input {
+    height:32px; border:1px solid #c8c8e0; border-radius:6px; padding:0 8px; font-size:13px; min-width:180px;
   }
-  .gt-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
-  .gt-field label { font-size: 11px; font-weight: 600; color: var(--ink-light); text-transform: uppercase; letter-spacing: 0.5px; }
-  .gt-field select, .gt-field input {
-    height: 36px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 10px; font-size: 13px; outline: none; background: #fff;
+  .ptc-btn {
+    height:32px; padding:0 16px; border-radius:6px; border:1px solid var(--accent);
+    background:var(--accent); color:#fff; font-weight:600; font-size:13px; cursor:pointer;
   }
-  
-  .gt-btn {
-    height: 36px; padding: 0 20px; border-radius: 6px; border: none;
-    background: var(--accent); color: #ffffff; font-weight: 600; font-size: 13px; cursor: pointer;
-  }
-  .gt-btn:hover { background: var(--accent-hover); }
-  .gt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .gt-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .gt-card { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
-  .gt-card .lbl { font-size: 11px; font-weight: 600; color: var(--ink-light); text-transform: uppercase; }
-  .gt-card .val { font-size: 22px; font-weight: 700; margin-top: 4px; }
-
-  .gt-table-container { background: #ffffff; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; text-align: left; }
-  th, td { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; }
-  th { background: var(--surface); font-weight: 600; color: var(--ink-light); text-transform: uppercase; font-size: 10px; }
-  
-  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-  .pill-ok { background: var(--ok-bg); color: var(--ok); }
-  .pill-danger { background: var(--danger-bg); color: var(--danger); }
-  
-  .gt-empty { padding: 40px; text-align: center; color: var(--ink-light); }
-  .gt-log { margin-top: 20px; padding: 12px; background: #0f172a; color: #38bdf8; font-family: monospace; font-size: 11px; border-radius: 6px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+  .ptc-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .ptc-summary { display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+  .ptc-metric { background:#fff; border:1px solid var(--border); border-radius:10px; padding:12px 16px; min-width:140px; }
+  .ptc-metric .lbl { font-size:11px; color:var(--ink-mid); text-transform:uppercase; font-weight:600; }
+  .ptc-metric .val { font-size:22px; font-weight:700; }
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  th, td { padding:8px 12px; text-align:left; font-size:12px; border-bottom:1px solid var(--border); }
+  th { background:var(--surface); font-weight:700; text-transform:uppercase; font-size:10px; color:var(--ink-mid); }
+  .pill { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:600; }
+  .pill-ok { background:#e0f5ed; color:var(--ok); }
+  .pill-danger { background:#fee2e2; color:var(--danger); }
+  .ptc-link { color:var(--accent); text-decoration:none; font-weight:600; font-size:11px; }
+  .ptc-state { padding:30px; text-align:center; color:var(--ink-mid); font-size:13px; }
+  .ptc-log { font-family:monospace; font-size:11px; color:var(--ink-mid); white-space:pre-wrap;
+    background:var(--surface); border-radius:6px; padding:10px; margin-top:10px; max-height:420px; overflow:auto; }
 </style>
 
-<div id="gt-addin">
-  <div class="gt-header">
-    <h1>Informe de Detección de Pasajeros y Eventos de Cámara</h1>
-    <p>Consulta directa de la API de CameraEvent y cruce con viajes</p>
-  </div>
+<div id="ptc-wrap">
+  <h1>Test: Viajes con pasajero vs sin pasajero (cámara)</h1>
 
-  <div class="gt-filter-bar">
-    <div class="gt-field">
+  <div class="ptc-bar">
+    <div class="ptc-field">
       <label>Vehículo</label>
-      <select id="selDevice"><option value="">Cargando vehículos…</option></select>
+      <select id="ptcDevice"><option value="">Cargando vehículos…</option></select>
     </div>
-    <div class="gt-field">
-      <label>S/N Cámara *</label>
-      <input type="text" id="inpCameraSn" placeholder="Ej: GEU6Z0Z8CKT4" value="GEU6Z0Z8CKT4"/>
-    </div>
-    <div class="gt-field">
-      <label>Evento de Cámara</label>
-      <select id="selEventType">
-        <option value="Passenger.Disallowed" selected>🚫 Passenger.Disallowed (Pasajero no permitido)</option>
-        <option value="ALL">-- Todos los eventos de cámara --</option>
-        <option value="Speed.Sign.Detected">🛑 Speed.Sign.Detected (Señales de velocidad)</option>
-      </select>
-    </div>
-    <div class="gt-field">
+    <div class="ptc-field">
       <label>Desde</label>
-      <input type="date" id="inpFrom"/>
+      <input type="date" id="ptcFrom"/>
     </div>
-    <div class="gt-field">
+    <div class="ptc-field">
       <label>Hasta</label>
-      <input type="date" id="inpTo"/>
+      <input type="date" id="ptcTo"/>
     </div>
-    <button class="gt-btn" id="btnConsult" disabled>Buscar Eventos</button>
+    <button class="ptc-btn" id="ptcRun" disabled>Comparar</button>
   </div>
 
-  <div id="gtResults">
-    <div class="gt-empty">Selecciona vehículo, introduce S/N de la cámara y rango de fechas.</div>
+  <div id="ptcResults">
+    <div class="ptc-state">Selecciona vehículo y rango de fechas, y pulsa Comparar.</div>
   </div>
 
-  <div id="gtLog" class="gt-log" style="display:none;"></div>
+  <div id="ptcLog" class="ptc-log" style="display:none;"></div>
+  <button class="ptc-btn" id="ptcCopyLog" style="display:none;margin-top:8px;background:#fff;color:var(--accent);">Copiar log completo</button>
 </div>
 
 <script>
 (function() {
+
     let api = null;
     let devices = [];
 
     function log(msg) {
-        const el = document.getElementById('gtLog');
+        const el = document.getElementById('ptcLog');
         el.style.display = 'block';
-        el.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
-        console.log('[CameraAddin]', msg);
+        document.getElementById('ptcCopyLog').style.display = 'inline-flex';
+        el.textContent += msg + '\n';
+        console.log('[PassengerTest]', msg);
     }
 
     function callApi(method, params) {
@@ -126,184 +91,247 @@
         });
     }
 
-    async function loadInitialData() {
-        const today = new Date();
-        const past = new Date();
-        past.setDate(today.getDate() - 7);
-        document.getElementById('inpTo').value = today.toISOString().split('T')[0];
-        document.getElementById('inpFrom').value = past.toISOString().split('T')[0];
-
-        // Cargar Lista de Vehículos
-        devices = await callApi('Get', { typeName: 'Device', resultsLimit: 2000 });
-        const devSel = document.getElementById('selDevice');
-        devSel.innerHTML = '<option value="">Selecciona vehículo…</option>' +
-            devices.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-
-        document.getElementById('btnConsult').disabled = false;
+    // ── Llamada RAW por fetch(), saltando el SDK del addin ──────────────
+    // CONFIRMADO: el mismo payload por curl directo a apiv1 SÍ devuelve los
+    // eventos Passenger.Disallowed; por api.call() del SDK del addin siempre
+    // falla con "An undefined exception has occurred" — el SDK parece no
+    // manejar bien typeName "CameraEvent" (entidad muy nueva) y corrompe la
+    // petición antes de enviarla. Lo evitamos haciendo fetch() directo, con
+    // las credenciales de la sesión actual obtenidas vía api.getSession().
+    let _session = null;
+    function getSession() {
+        if (_session) return Promise.resolve(_session);
+        return new Promise((resolve, reject) => {
+            if (!api) return reject(new Error('API no inicializada'));
+            api.getSession(function(session) {
+                _session = session;
+                resolve(session);
+            });
+        });
     }
 
-   async function executeQuery() {
-    const deviceId = document.getElementById('selDevice').value;
-    const cameraSn = document.getElementById('inpCameraSn').value.trim();
-    const eventTypeFilter = document.getElementById('selEventType').value;
-    const fromVal = document.getElementById('inpFrom').value;
-    const toVal = document.getElementById('inpTo').value;
-
-    if (!deviceId || !fromVal || !toVal) {
-        alert('Por favor selecciona vehículo y el rango de fechas.');
-        return;
+    async function rawApiCall(method, params) {
+        const session = await getSession();
+        const host = session.server || 'my.geotab.com';
+        const body = {
+            method: method,
+            params: Object.assign({}, params, {
+                credentials: {
+                    database: session.database,
+                    userName: session.userName,
+                    sessionId: session.sessionId
+                }
+            })
+        };
+        const resp = await fetch('https://' + host + '/apiv1', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await resp.json();
+        if (data.error) {
+            throw new Error(data.error.message || JSON.stringify(data.error));
+        }
+        return data.result;
     }
 
-    document.getElementById('gtResults').innerHTML = '<div class="gt-empty">Consultando CameraEvent y Viajes…</div>';
-    const fromDate = fromVal + 'T00:00:00.000Z';
-    const toDate = toVal + 'T23:59:59.999Z';
+    // ── Resolver el número de serie de cámara del vehículo ──────────────
+    // CONFIRMADO: el objeto Camera NO tiene deviceId, solo deviceSerialNumber
+    // (el número de serie físico del GO, ej. "GAPV4SACPXSA"). Hay que cruzarlo
+    // con Device.serialNumber, no con Device.id.
+    let _cameraCache = null;
+    async function getCameraSerialForDevice(deviceId) {
+        if (!_cameraCache) {
+            try {
+                _cameraCache = await rawApiCall('Get', { typeName: 'Camera' });
+                log(`Camera: ${_cameraCache ? _cameraCache.length : 0} cámaras totales en la base`);
+            } catch (e) {
+                log('ERROR Camera: ' + e.message);
+                _cameraCache = [];
+            }
+        }
 
-    try {
-        log(`Consultando datos para vehículo [ID: ${deviceId}] en rango [${fromDate} - ${toDate}]`);
+        const device = devices.find(d => d.id === deviceId);
+        if (!device || !device.serialNumber) {
+            log(`AVISO: no se pudo obtener el serialNumber del vehículo ${deviceId} (¿es un GO device?).`);
+            return null;
+        }
 
-        // 1. Consulta de Viajes del vehículo
-        const trips = await callApi('Get', {
+        const match = _cameraCache.find(c => c.deviceSerialNumber === device.serialNumber);
+        if (!match) {
+            log(`AVISO: no se encontró cámara con deviceSerialNumber=${device.serialNumber} (vehículo ${deviceId}).`);
+            return null;
+        }
+        return match.cameraSerialNumber || null;
+    }
+
+    // ── Descarga de CameraEvent ──────────────────────────────────────
+    // CONFIRMADO con el Try It de la doc (capturado en DevTools):
+    // - El search NO acepta deviceSearch, solo fromDate/toDate (+ cameraSerialNumbers).
+    // - La respuesta trae deviceId, deviceName y eventType en texto plano
+    //   (ej. "Passenger.Disallowed"), así que además filtramos por tipo en el cliente.
+    async function getPassengerEvents(deviceId, fromDate, toDate) {
+        const cameraSerial = await getCameraSerialForDevice(deviceId);
+
+        const search = { fromDate: fromDate, toDate: toDate };
+        if (cameraSerial) {
+            search.cameraSerialNumbers = [cameraSerial];
+            log(`Filtrando CameraEvent por cameraSerialNumbers: [${cameraSerial}]`);
+        } else {
+            log('AVISO: sin número de serie de cámara — la petición irá sin filtrar por cámara (puede fallar en rangos amplios).');
+        }
+
+        let raw;
+        try {
+            raw = await rawApiCall('Get', { typeName: 'CameraEvent', search: search });
+            log(`CameraEvent: ${raw ? raw.length : 0} resultados`);
+        } catch (e) {
+            log('ERROR CameraEvent: ' + e.message);
+            return [];
+        }
+
+        if (!raw || raw.length === 0) return [];
+
+        log('Primer evento crudo (para confirmar el resto de campos, ej. "id"):');
+        log(JSON.stringify(raw[0], null, 2));
+
+        const filtered = raw.filter(ev => ev.deviceId === deviceId && ev.eventType === 'Passenger.Disallowed');
+        log(`Tras filtrar por vehículo (${deviceId}) y eventType Passenger.Disallowed: ${filtered.length}`);
+
+        if (filtered.length > 0 && !filtered[0].id) {
+            log('AVISO: el evento no trae campo "id" visible — revisa el JSON de arriba para localizar el identificador real antes de usar "Ver evidencia".');
+        }
+
+        return filtered.map(ev => ({
+            id: ev.id,
+            deviceId: ev.deviceId,
+            eventStart: ev.eventStart,
+            eventEnd: ev.eventEnd,
+            raw: ev
+        }));
+    }
+
+    async function getTrips(deviceId, fromDate, toDate) {
+        return await callApi('Get', {
             typeName: 'Trip',
-            search: { 
-                deviceSearch: { id: deviceId }, 
-                fromDate: fromDate, 
-                toDate: toDate 
-            },
+            search: { deviceSearch: { id: deviceId }, fromDate: fromDate, toDate: toDate },
             resultsLimit: 5000
         });
+    }
 
-        // 2. Consulta de CameraEvent usando deviceSearch (Estructura oficial SDK)
-        const cameraEvents = await callApi('Get', {
-            typeName: 'CameraEvent',
-            search: {
-                deviceSearch: { id: deviceId },
-                fromDate: fromDate,
-                toDate: toDate
-            }
-        });
+    async function loadDevices() {
+        const list = await callApi('Get', { typeName: 'Device', resultsLimit: 2000 });
+        devices = list;
+        const sel = document.getElementById('ptcDevice');
+        sel.innerHTML = '<option value="">Selecciona…</option>' +
+            list.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+        document.getElementById('ptcRun').disabled = false;
+    }
 
-        log(`Obtenidos ${trips.length} viajes y ${cameraEvents.length} eventos de cámara.`);
+    function fmtDateTime(d) {
+        return new Date(d).toLocaleString('es-ES', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    }
 
-        // 3. Filtrado en JavaScript por S/N de cámara y por eventType
-        const filteredEvents = cameraEvents.filter(e => {
-            // Si el objeto devuelve S/N de cámara o mediaFile asociado, lo validamos
-            const snMatches = !cameraSn || 
-                (e.cameraSerialNumber && e.cameraSerialNumber.toLowerCase() === cameraSn.toLowerCase()) ||
-                (e.device && e.device.id === deviceId);
+    async function viewEvidence(eventId) {
+        try {
+            const result = await rawApiCall('Get', { typeName: 'CameraEventRecording', eventId: eventId });
+            const rec = Array.isArray(result) ? result[0] : result;
+            const url = rec && (rec.mediaUrls ? (rec.mediaUrls[0] || rec.mediaUrls) : rec.fileDownloadUrl);
+            if (url) window.open(url, '_blank');
+            else alert('Grabación no disponible todavía para este evento.');
+        } catch (e) {
+            alert('Error obteniendo evidencia: ' + e.message);
+        }
+    }
+    window.ptcViewEvidence = viewEvidence;
 
-            const typeMatches = (eventTypeFilter === 'ALL') || (e.eventType === eventTypeFilter);
-            
-            return snMatches && typeMatches;
-        });
+    async function runComparison() {
+        const deviceId = document.getElementById('ptcDevice').value;
+        const fromInput = document.getElementById('ptcFrom').value;
+        const toInput = document.getElementById('ptcTo').value;
+        if (!deviceId || !fromInput || !toInput) {
+            alert('Selecciona vehículo y ambas fechas.');
+            return;
+        }
 
-        // 4. Cruzar viajes con eventos por rango de hora (eventStart)
-        const enrichedTrips = trips.map(t => {
-            const tStart = new Date(t.start || t.startTime).getTime();
-            const tStop = new Date(t.stop || t.stopTime).getTime();
+        document.getElementById('ptcLog').textContent = '';
+        document.getElementById('ptcResults').innerHTML = '<div class="ptc-state">Consultando…</div>';
 
-            const tripEvents = filteredEvents.filter(ev => {
-                const evStart = new Date(ev.eventStart).getTime();
-                return evStart >= tStart && evStart <= tStop;
+        const fromDate = fromInput + 'T00:00:00.000Z';
+        const toDate = toInput + 'T23:59:59.999Z';
+
+        try {
+            log(`Pidiendo trips de ${deviceId} entre ${fromDate} y ${toDate}`);
+            const trips = await getTrips(deviceId, fromDate, toDate);
+            log(`Trips encontrados: ${trips.length}`);
+
+            log('Pidiendo eventos Passenger.Disallowed…');
+            const camEventsForDevice = await getPassengerEvents(deviceId, fromDate, toDate);
+            log(`Eventos de cámara para este vehículo tras normalizar: ${camEventsForDevice.length}`);
+
+            const enriched = trips.map(t => {
+                const tStart = new Date(t.start || t.startTime).getTime();
+                const tStop = new Date(t.stop || t.stopTime).getTime();
+                const events = camEventsForDevice.filter(ev => {
+                    const evT = new Date(ev.eventStart).getTime();
+                    return evT >= tStart && evT <= tStop;
+                });
+                return { trip: t, events: events, hasPassenger: events.length > 0 };
             });
 
-            return { trip: t, events: tripEvents };
-        });
-
-        renderResults(enrichedTrips, filteredEvents, cameraEvents);
-    } catch (e) {
-        log('Error ejecutando consulta: ' + (e.message || JSON.stringify(e)));
-        document.getElementById('gtResults').innerHTML = 
-            `<div class="gt-empty" style="color:var(--danger)">Error al obtener datos: ${e.message || 'Excepción no definida'}</div>`;
+            renderResults(enriched);
+        } catch (e) {
+            log('ERROR: ' + e.message);
+            document.getElementById('ptcResults').innerHTML =
+                `<div class="ptc-state" style="color:var(--danger);">Error: ${e.message}</div>`;
+        }
     }
-}
 
-    function renderResults(enriched, filteredEvents, allEvents) {
-        const tripsWithEvents = enriched.filter(e => e.events.length > 0).length;
-        const totalTrips = enriched.length;
-
-        // Desglose de tipos de evento detectados
-        const eventCounts = {};
-        allEvents.forEach(e => {
-            eventCounts[e.eventType] = (eventCounts[e.eventType] || 0) + 1;
-        });
+    function renderResults(enriched) {
+        const withPassenger = enriched.filter(e => e.hasPassenger).length;
+        const withoutPassenger = enriched.length - withPassenger;
 
         let html = `
-        <div class="gt-metrics">
-            <div class="gt-card"><div class="lbl">Viajes Analizados</div><div class="val">${totalTrips}</div></div>
-            <div class="gt-card"><div class="lbl">Viajes con Evento</div><div class="val" style="color:var(--danger);">${tripsWithEvents}</div></div>
-            <div class="gt-card"><div class="lbl">Eventos Filtrados</div><div class="val" style="color:var(--accent);">${filteredEvents.length}</div></div>
-            <div class="gt-card"><div class="lbl">Total Eventos Cámara</div><div class="val">${allEvents.length}</div></div>
+        <div class="ptc-summary">
+            <div class="ptc-metric"><div class="lbl">Total viajes</div><div class="val">${enriched.length}</div></div>
+            <div class="ptc-metric"><div class="lbl">Con pasajero</div><div class="val" style="color:var(--danger);">${withPassenger}</div></div>
+            <div class="ptc-metric"><div class="lbl">Sin pasajero</div><div class="val" style="color:var(--ok);">${withoutPassenger}</div></div>
         </div>
-
-        <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;">
-            <strong>Desglose de Eventos Detectados en la Cámara:</strong>
-            <ul style="margin:8px 0 0;padding-left:20px;font-size:12px;color:var(--ink);">`;
-
-        const keys = Object.keys(eventCounts);
-        if (keys.length === 0) {
-            html += `<li>No se registraron eventos en este rango.</li>`;
-        } else {
-            keys.forEach(type => {
-                const isTarget = type === 'Passenger.Disallowed';
-                html += `<li><strong style="${isTarget ? 'color:var(--danger);' : ''}">${type}</strong>: ${eventCounts[type]} evento(s)</li>`;
-            });
-        }
-
-        html += `</ul></div>
-
-        <div class="gt-table-container">
         <table>
-        <thead>
-            <tr>
-                <th>Inicio Viaje</th>
-                <th>Fin Viaje</th>
-                <th>Distancia</th>
-                <th>Estado</th>
-                <th>Detalle de Eventos</th>
-            </tr>
-        </thead>
-        <tbody>`;
+        <thead><tr>
+            <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Distancia</th><th>Estado</th><th>Eventos</th><th></th>
+        </tr></thead><tbody>`;
 
-        if (enriched.length === 0) {
-            html += `<tr><td colspan="5" style="text-align:center;padding:20px;">No se encontraron viajes en el periodo seleccionado.</td></tr>`;
-        } else {
-            enriched.sort((a,b) => new Date(b.trip.start || b.trip.startTime) - new Date(a.trip.start || a.trip.startTime));
+        enriched.sort((a,b) => new Date(b.trip.start || b.trip.startTime) - new Date(a.trip.start || a.trip.startTime));
 
-            enriched.forEach(item => {
-                const t = item.trip;
-                const start = t.start || t.startTime;
-                const stop = t.stop || t.stopTime;
-                const dist = (t.distance || 0).toFixed(1);
+        enriched.forEach(e => {
+            const t = e.trip;
+            const start = t.start || t.startTime;
+            const stop = t.stop || t.stopTime;
+            const dist = (t.distance || 0).toFixed(2);
+            const badge = e.hasPassenger
+                ? `<span class="pill pill-danger">🎥 Con pasajero</span>`
+                : `<span class="pill pill-ok">Sin pasajero</span>`;
+            const evidenceLink = e.events.length > 0
+                ? `<a href="#" class="ptc-link" onclick="event.preventDefault();ptcViewEvidence('${e.events[0].id}')">Ver evidencia</a>`
+                : '';
 
-                let eventsSummary = '—';
-                if (item.events.length > 0) {
-                    const counts = {};
-                    item.events.forEach(ev => {
-                        counts[ev.eventType] = (counts[ev.eventType] || 0) + 1;
-                    });
-                    eventsSummary = Object.entries(counts)
-                        .map(([type, count]) => `<span style="color:var(--danger);font-weight:600;">${type}</span> (${count})`)
-                        .join(', ');
-                }
+            html += `<tr>
+                <td>${fmtDateTime(start).split(' ')[0]}</td>
+                <td>${fmtDateTime(start)}</td>
+                <td>${fmtDateTime(stop)}</td>
+                <td>${dist} km</td>
+                <td>${badge}</td>
+                <td>${e.events.length}</td>
+                <td>${evidenceLink}</td>
+            </tr>`;
+        });
 
-                const badge = item.events.length > 0
-                    ? `<span class="pill pill-danger">⚠️ ${item.events.length} evento(s)</span>`
-                    : `<span class="pill pill-ok">✓ Sin incidencias</span>`;
-
-                html += `<tr>
-                    <td>${new Date(start).toLocaleString('es-ES')}</td>
-                    <td>${new Date(stop).toLocaleString('es-ES')}</td>
-                    <td>${dist} km</td>
-                    <td>${badge}</td>
-                    <td>${eventsSummary}</td>
-                </tr>`;
-            });
-        }
-
-        html += '</tbody></table></div>';
-        document.getElementById('gtResults').innerHTML = html;
+        html += '</tbody></table>';
+        document.getElementById('ptcResults').innerHTML = html;
     }
 
+    // ── Registro del addin ────────────────────────────────────────────
     if (typeof geotab === 'undefined') {
         window.geotab = { addin: {} };
     }
@@ -312,8 +340,16 @@
         return {
             initialize: function(geotabApi, geotabState, callback) {
                 api = geotabApi;
-                loadInitialData().catch(e => log('Error en inicialización: ' + e.message));
-                document.getElementById('btnConsult').addEventListener('click', executeQuery);
+                loadDevices().catch(e => log('ERROR cargando vehículos: ' + e.message));
+                document.getElementById('ptcRun').addEventListener('click', runComparison);
+                const copyBtn = document.getElementById('ptcCopyLog');
+                copyBtn.addEventListener('click', () => {
+                    const text = document.getElementById('ptcLog').textContent;
+                    navigator.clipboard.writeText(text).then(() => {
+                        copyBtn.textContent = '¡Copiado!';
+                        setTimeout(() => { copyBtn.textContent = 'Copiar log completo'; }, 1500);
+                    });
+                });
                 callback();
             },
             focus: function() {},
