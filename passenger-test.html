@@ -181,20 +181,34 @@
             log('AVISO: sin número de serie de cámara — la petición irá sin filtrar por cámara (puede fallar en rangos amplios).');
         }
 
-        let raw;
+        let raw = [];
+        let page = 0;
+        const pageSize = 500;
         try {
-            raw = await rawApiCall('Get', { typeName: 'CameraEvent', search: search, resultsLimit: 5000 });
-            log(`CameraEvent: ${raw ? raw.length : 0} resultados (resultsLimit=5000)`);
+            while (true) {
+                const batch = await rawApiCall('Get', {
+                    typeName: 'CameraEvent',
+                    search: search,
+                    resultsLimit: pageSize,
+                    page: page
+                });
+                log(`CameraEvent página ${page}: ${batch ? batch.length : 0} resultados`);
+                if (!batch || batch.length === 0) break;
+                raw = raw.concat(batch);
+                if (batch.length < pageSize) break; // última página
+                page++;
+                if (page > 20) { // salvaguarda por si "page" no está soportado y se repite en bucle
+                    log('AVISO: cortando tras 20 páginas por seguridad — revisa si "page" se está ignorando.');
+                    break;
+                }
+            }
+            log(`CameraEvent total tras paginar: ${raw.length} resultados`);
         } catch (e) {
             log('ERROR CameraEvent: ' + e.message);
             return [];
         }
 
         if (!raw || raw.length === 0) return [];
-
-        if (raw.length >= 5000) {
-            log('AVISO: se ha alcanzado el resultsLimit (5000) — probablemente falten eventos, haría falta paginar por fecha (dividir el rango en trozos más pequeños).');
-        }
 
         log('Primer evento crudo (para confirmar el resto de campos, ej. "id"):');
         log(JSON.stringify(raw[0], null, 2));
