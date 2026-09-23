@@ -59,6 +59,10 @@
       <label>Hasta</label>
       <input type="date" id="ptcTo"/>
     </div>
+    <div class="ptc-field">
+      <label>Agrupar hueco &lt;</label>
+      <input type="number" id="ptcSessionGap" value="15" min="0" style="width:90px;"/>
+    </div>
     <button class="ptc-btn" id="ptcRun" disabled>Comparar</button>
   </div>
 
@@ -294,8 +298,56 @@
                     const evT = new Date(ev.eventStart).getTime();
                     return evT >= tStart && evT <= tStop;
                 });
-                return { trip: t, events: events, hasPassenger: events.length > 0 };
+                return { trip: t, events: events, hasPassenger: events.length > 0, sessionId: null, propagated: false };
             });
+
+            // ── Agrupación en sesiones ────────────────────────────────────
+            // Varios "Trips" de Geotab consecutivos con poco hueco entre ellos suelen ser
+            // en realidad un único trayecto físico (el GPS trocea el viaje en paradas cortas).
+            // Si el evento de cámara se disparó una sola vez dentro de la sesión, propagamos
+            // el flag "con pasajero" a TODOS los viajes de esa sesión.
+            const gapMinutes = parseInt(document.getElementById('ptcSessionGap').value) || 0;
+            const gapMs = gapMinutes * 60000;
+
+            enriched.sort((a, b) =>
+                new Date(a.trip.start || a.trip.startTime) - new Date(b.trip.start || b.trip.startTime));
+
+            let sessionId = 0;
+            enriched.forEach((e, i) => {
+                if (i === 0) {
+                    e.sessionId = sessionId;
+                } else {
+                    const prevStop = new Date(enriched[i-1].trip.stop || enriched[i-1].trip.stopTime).getTime();
+                    const curStart = new Date(e.trip.start || e.trip.startTime).getTime();
+                    if (gapMinutes > 0 && (curStart - prevStop) <= gapMs) {
+                        e.sessionId = enriched[i-1].sessionId;
+                    } else {
+                        sessionId++;
+                        e.sessionId = sessionId;
+                    }
+                }
+            });
+
+            if (gapMinutes > 0) {
+                const sessions = {};
+                enriched.forEach(e => {
+                    if (!sessions[e.sessionId]) sessions[e.sessionId] = [];
+                    sessions[e.sessionId].push(e);
+                });
+                Object.values(sessions).forEach(group => {
+                    if (group.length > 1 && group.some(e => e.hasPassenger)) {
+                        const sessionEvents = group.reduce((acc, e) => acc.concat(e.events), []);
+                        group.forEach(e => {
+                            e.sessionEvents = sessionEvents;
+                            if (!e.hasPassenger) {
+                                e.hasPassenger = true;
+                                e.propagated = true;
+                            }
+                        });
+                    }
+                });
+                log(`Sesiones formadas (hueco < ${gapMinutes} min): ${Object.keys(sessions).length}`);
+            }
 
             renderResults(enriched);
         } catch (e) {
@@ -328,10 +380,14 @@
             const stop = t.stop || t.stopTime;
             const dist = (t.distance || 0).toFixed(2);
             const badge = e.hasPassenger
-                ? `<span class="pill pill-danger">🎥 Con pasajero</span>`
+                ? (e.propagated
+                    ? `<span class="pill pill-danger">🔗 Con pasajero (sesión)</span>`
+                    : `<span class="pill pill-danger">🎥 Con pasajero</span>`)
                 : `<span class="pill pill-ok">Sin pasajero</span>`;
-            const evidenceLink = e.events.length > 0
-                ? `<a href="#" class="ptc-link" onclick="event.preventDefault();ptcViewEvidence('${e.events[0].id}')">Ver evidencia</a>`
+
+            const evidenceEvents = e.events.length > 0 ? e.events : (e.sessionEvents || []);
+            const evidenceLink = evidenceEvents.length > 0
+                ? `<a href="#" class="ptc-link" onclick="event.preventDefault();ptcViewEvidence('${evidenceEvents[0].id}')">Ver evidencia</a>`
                 : '';
 
             html += `<tr>
