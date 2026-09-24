@@ -60,8 +60,8 @@
       <input type="date" id="ptcTo"/>
     </div>
     <div class="ptc-field">
-      <label>Agrupar hueco &lt;</label>
-      <input type="number" id="ptcSessionGap" value="15" min="0" style="width:90px;"/>
+      <label>Tolerancia (min)</label>
+      <input type="number" id="ptcSessionGap" value="3" min="0" style="width:90px;"/>
     </div>
     <button class="ptc-btn" id="ptcRun" disabled>Comparar</button>
   </div>
@@ -291,63 +291,27 @@
             const camEventsForDevice = await getPassengerEvents(deviceId, fromDate, toDate);
             log(`Eventos de cámara para este vehículo tras normalizar: ${camEventsForDevice.length}`);
 
+            // Tolerancia: Geotab solo corta un Trip cuando el vehículo lleva >200s parado
+            // o quita contacto. Los eventos de pasajero suelen dispararse justo en esa
+            // transición (recogida/bajada), unos segundos o minutos antes/después del
+            // borde exacto del Trip — por eso ampliamos la ventana en vez de fusionar
+            // viajes completos (eso arrastraba contaminación entre carreras distintas).
+            const toleranceMin = parseFloat(document.getElementById('ptcSessionGap').value) || 0;
+            const toleranceMs = toleranceMin * 60000;
+            log(`Aplicando tolerancia de ±${toleranceMin} min en los bordes de cada viaje`);
+
             const enriched = trips.map(t => {
                 const tStart = new Date(t.start || t.startTime).getTime();
                 const tStop = new Date(t.stop || t.stopTime).getTime();
                 const events = camEventsForDevice.filter(ev => {
                     const evT = new Date(ev.eventStart).getTime();
-                    return evT >= tStart && evT <= tStop;
+                    return evT >= (tStart - toleranceMs) && evT <= (tStop + toleranceMs);
                 });
-                return { trip: t, events: events, hasPassenger: events.length > 0, sessionId: null, propagated: false };
+                return { trip: t, events: events, hasPassenger: events.length > 0 };
             });
-
-            // ── Agrupación en sesiones ────────────────────────────────────
-            // Varios "Trips" de Geotab consecutivos con poco hueco entre ellos suelen ser
-            // en realidad un único trayecto físico (el GPS trocea el viaje en paradas cortas).
-            // Si el evento de cámara se disparó una sola vez dentro de la sesión, propagamos
-            // el flag "con pasajero" a TODOS los viajes de esa sesión.
-            const gapMinutes = parseInt(document.getElementById('ptcSessionGap').value) || 0;
-            const gapMs = gapMinutes * 60000;
 
             enriched.sort((a, b) =>
-                new Date(a.trip.start || a.trip.startTime) - new Date(b.trip.start || b.trip.startTime));
-
-            let sessionId = 0;
-            enriched.forEach((e, i) => {
-                if (i === 0) {
-                    e.sessionId = sessionId;
-                } else {
-                    const prevStop = new Date(enriched[i-1].trip.stop || enriched[i-1].trip.stopTime).getTime();
-                    const curStart = new Date(e.trip.start || e.trip.startTime).getTime();
-                    if (gapMinutes > 0 && (curStart - prevStop) <= gapMs) {
-                        e.sessionId = enriched[i-1].sessionId;
-                    } else {
-                        sessionId++;
-                        e.sessionId = sessionId;
-                    }
-                }
-            });
-
-            if (gapMinutes > 0) {
-                const sessions = {};
-                enriched.forEach(e => {
-                    if (!sessions[e.sessionId]) sessions[e.sessionId] = [];
-                    sessions[e.sessionId].push(e);
-                });
-                Object.values(sessions).forEach(group => {
-                    if (group.length > 1 && group.some(e => e.hasPassenger)) {
-                        const sessionEvents = group.reduce((acc, e) => acc.concat(e.events), []);
-                        group.forEach(e => {
-                            e.sessionEvents = sessionEvents;
-                            if (!e.hasPassenger) {
-                                e.hasPassenger = true;
-                                e.propagated = true;
-                            }
-                        });
-                    }
-                });
-                log(`Sesiones formadas (hueco < ${gapMinutes} min): ${Object.keys(sessions).length}`);
-            }
+                new Date(b.trip.start || b.trip.startTime) - new Date(a.trip.start || a.trip.startTime));
 
             renderResults(enriched);
         } catch (e) {
@@ -372,22 +336,17 @@
             <th>Fecha</th><th>Inicio</th><th>Fin</th><th>Distancia</th><th>Estado</th><th>Eventos</th><th></th>
         </tr></thead><tbody>`;
 
-        enriched.sort((a,b) => new Date(b.trip.start || b.trip.startTime) - new Date(a.trip.start || a.trip.startTime));
-
         enriched.forEach(e => {
             const t = e.trip;
             const start = t.start || t.startTime;
             const stop = t.stop || t.stopTime;
             const dist = (t.distance || 0).toFixed(2);
             const badge = e.hasPassenger
-                ? (e.propagated
-                    ? `<span class="pill pill-danger">🔗 Con pasajero (sesión)</span>`
-                    : `<span class="pill pill-danger">🎥 Con pasajero</span>`)
+                ? `<span class="pill pill-danger">🎥 Con pasajero</span>`
                 : `<span class="pill pill-ok">Sin pasajero</span>`;
 
-            const evidenceEvents = e.events.length > 0 ? e.events : (e.sessionEvents || []);
-            const evidenceLink = evidenceEvents.length > 0
-                ? `<a href="#" class="ptc-link" onclick="event.preventDefault();ptcViewEvidence('${evidenceEvents[0].id}')">Ver evidencia</a>`
+            const evidenceLink = e.events.length > 0
+                ? `<a href="#" class="ptc-link" onclick="event.preventDefault();ptcViewEvidence('${e.events[0].id}')">Ver evidencia</a>`
                 : '';
 
             html += `<tr>
