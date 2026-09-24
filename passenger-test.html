@@ -307,8 +307,22 @@
                     const evT = new Date(ev.eventStart).getTime();
                     return evT >= (tStart - toleranceMs) && evT <= (tStop + toleranceMs);
                 });
-                return { trip: t, events: events, hasPassenger: events.length > 0 };
+
+                let nearestGapMin = null;
+                if (events.length === 0 && camEventsForDevice.length > 0) {
+                    const tMid = (tStart + tStop) / 2;
+                    const gaps = camEventsForDevice.map(ev => Math.abs(new Date(ev.eventStart).getTime() - tMid));
+                    nearestGapMin = Math.round(Math.min(...gaps) / 60000);
+                }
+
+                return { trip: t, events: events, hasPassenger: events.length > 0, nearestGapMin: nearestGapMin };
             });
+
+            const noMatchSummary = enriched
+                .filter(e => !e.hasPassenger)
+                .map(e => `  ${fmtDateTime(e.trip.start || e.trip.startTime)} → evento más cercano a ${e.nearestGapMin} min`)
+                .join('\n');
+            log('Diagnóstico — distancia al evento Passenger.Disallowed más cercano (viajes sin match):\n' + noMatchSummary);
 
             enriched.sort((a, b) =>
                 new Date(b.trip.start || b.trip.startTime) - new Date(a.trip.start || a.trip.startTime));
