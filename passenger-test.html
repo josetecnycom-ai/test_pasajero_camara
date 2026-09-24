@@ -170,17 +170,26 @@
     }
 
     // ── Descarga de CameraEvent ──────────────────────────────────────
-    // CONFIRMADO con el Try It de la doc (capturado en DevTools):
-    // - El search NO acepta deviceSearch, solo fromDate/toDate (+ cameraSerialNumbers).
-    // - La respuesta trae deviceId, deviceName y eventType en texto plano
-    //   (ej. "Passenger.Disallowed"), así que además filtramos por tipo en el cliente.
+    // CONFIRMADO con captura de curl real:
+    // - search acepta cameraSerialNumbers Y eventTypeFilter: [{ eventType: "..." }].
+    // - Filtrar por eventType EN EL SERVIDOR es importante, no solo una optimización:
+    //   sin él, la respuesta trae TODOS los tipos de evento del día (incluyendo los muy
+    //   pesados como Speed.Sign.Detected, con muchos eventAttributes anidados), y esa
+    //   respuesta puede truncarse en silencio antes de completar el día, dando un
+    //   subconjunto incompleto y no determinista aunque no se llegue al resultsLimit.
+    const EVENT_TYPE = 'Passenger.Disallowed';
+
     async function getPassengerEvents(deviceId, fromDate, toDate) {
         const cameraSerial = await getCameraSerialForDevice(deviceId);
 
-        const search = { fromDate: fromDate, toDate: toDate };
+        const search = {
+            fromDate: fromDate,
+            toDate: toDate,
+            eventTypeFilter: [{ eventType: EVENT_TYPE }]
+        };
         if (cameraSerial) {
             search.cameraSerialNumbers = [cameraSerial];
-            log(`Filtrando CameraEvent por cameraSerialNumbers: [${cameraSerial}]`);
+            log(`Filtrando CameraEvent por cameraSerialNumbers: [${cameraSerial}] y eventType: ${EVENT_TYPE}`);
         } else {
             log('AVISO: sin número de serie de cámara — la petición irá sin filtrar por cámara (puede fallar en rangos amplios).');
         }
@@ -217,8 +226,8 @@
         log('Primer evento crudo (para confirmar el resto de campos, ej. "id"):');
         log(JSON.stringify(raw[0], null, 2));
 
-        const filtered = raw.filter(ev => ev.deviceId === deviceId && ev.eventType === 'Passenger.Disallowed');
-        log(`Tras filtrar por vehículo (${deviceId}) y eventType Passenger.Disallowed: ${filtered.length}`);
+        const filtered = raw.filter(ev => ev.deviceId === deviceId && ev.eventType === EVENT_TYPE);
+        log(`Tras filtrar por vehículo (${deviceId}) y eventType ${EVENT_TYPE}: ${filtered.length}`);
 
         if (filtered.length > 0 && !filtered[0].id) {
             log('AVISO: el evento no trae campo "id" visible — revisa el JSON de arriba para localizar el identificador real antes de usar "Ver evidencia".');
