@@ -299,6 +299,8 @@
             log('Pidiendo eventos Passenger.Disallowed…');
             const camEventsForDevice = await getPassengerEvents(deviceId, fromDate, toDate);
             log(`Eventos de cámara para este vehículo tras normalizar: ${camEventsForDevice.length}`);
+            log('Lista completa de eventos recibidos (eventStart):\n' +
+                camEventsForDevice.map(ev => `  id=${ev.id} eventStart=${ev.eventStart}`).join('\n'));
 
             // Tolerancia: Geotab solo corta un Trip cuando el vehículo lleva >200s parado
             // o quita contacto. Los eventos de pasajero suelen dispararse justo en esa
@@ -326,6 +328,13 @@
 
                 return { trip: t, events: events, hasPassenger: events.length > 0, nearestGapMin: nearestGapMin };
             });
+
+            log('Cruce trip por trip (rango exacto usado, con tolerancia ya aplicada):\n' +
+                enriched.map(e => {
+                    const tStart = new Date(e.trip.start || e.trip.startTime);
+                    const tStop = new Date(e.trip.stop || e.trip.stopTime);
+                    return `  [${tStart.toISOString()} a ${tStop.toISOString()}] → ${e.events.length} evento(s) dentro`;
+                }).join('\n'));
 
             const noMatchSummary = enriched
                 .filter(e => !e.hasPassenger)
