@@ -250,6 +250,53 @@
         });
     }
 
+    // Regla "Parada Rápida" confirmada por el usuario — misma que usa el comparador VTC
+    // de producción (stop-analyzer.js) vía RuleManager.
+    const QUICK_STOP_RULE_ID = 'aqL2ahmjVl0ev8BRJxP6IqA';
+    async function getQuickStops(deviceId, fromDate, toDate) {
+        try {
+            return await callApi('Get', {
+                typeName: 'ExceptionEvent',
+                search: {
+                    ruleSearch: { id: QUICK_STOP_RULE_ID },
+                    deviceSearch: { id: deviceId },
+                    fromDate: fromDate,
+                    toDate: toDate
+                },
+                resultsLimit: 5000
+            }) || [];
+        } catch (e) {
+            log('ERROR ExceptionEvent (Parada Rápida): ' + e.message);
+            return [];
+        }
+    }
+
+    // Trocea la ventana de un Trip en sub-segmentos usando las paradas rápidas como frontera
+    function buildSegments(trip, quickStopsForDevice) {
+        const tStart = new Date(trip.start || trip.startTime).getTime();
+        const tStop = new Date(trip.stop || trip.stopTime).getTime();
+
+        const stopsInTrip = quickStopsForDevice
+            .filter(s => {
+                const sStart = new Date(s.activeFrom).getTime();
+                return sStart >= tStart && sStart <= tStop;
+            })
+            .sort((a, b) => new Date(a.activeFrom) - new Date(b.activeFrom));
+
+        const segments = [];
+        let cursor = tStart;
+        stopsInTrip.forEach(s => {
+            const sStart = new Date(s.activeFrom).getTime();
+            const sStop = new Date(s.activeTo).getTime();
+            if (sStart > cursor) segments.push({ from: cursor, to: sStart });
+            cursor = Math.max(cursor, sStop);
+        });
+        if (cursor < tStop) segments.push({ from: cursor, to: tStop });
+        if (segments.length === 0) segments.push({ from: tStart, to: tStop }); // sin paradas rápidas
+
+        return segments;
+    }
+
     async function loadDevices() {
         const list = await callApi('Get', { typeName: 'Device', resultsLimit: 2000 });
         devices = list;
@@ -302,38 +349,49 @@
             log('Lista completa de eventos recibidos (eventStart):\n' +
                 camEventsForDevice.map(ev => `  id=${ev.id} eventStart=${ev.eventStart}`).join('\n'));
 
-            // Tolerancia: Geotab solo corta un Trip cuando el vehículo lleva >200s parado
-            // o quita contacto. Los eventos de pasajero suelen dispararse justo en esa
-            // transición (recogida/bajada), unos segundos o minutos antes/después del
-            // borde exacto del Trip — por eso ampliamos la ventana en vez de fusionar
-            // viajes completos (eso arrastraba contaminación entre carreras distintas).
+            log('Pidiendo eventos de "Parada Rápida"…');
+            const quickStops = await getQuickStops(deviceId, fromDate, toDate);
+            log(`Paradas rápidas encontradas: ${quickStops.length}`);
+
+            // Tolerancia en los bordes de cada SUB-SEGMENTO (no del trip completo). La regla
+            // Passenger.Disallowed está en Beta y no dispara con cadencia fija, así que
+            // ampliamos un poco cada borde para no perder eventos que caen justo al filo.
             const toleranceMin = parseFloat(document.getElementById('ptcSessionGap').value) || 0;
             const toleranceMs = toleranceMin * 60000;
-            log(`Aplicando tolerancia de ±${toleranceMin} min en los bordes de cada viaje`);
+            log(`Aplicando tolerancia de ±${toleranceMin} min en los bordes de cada sub-segmento`);
 
             const enriched = trips.map(t => {
-                const tStart = new Date(t.start || t.startTime).getTime();
-                const tStop = new Date(t.stop || t.stopTime).getTime();
-                const events = camEventsForDevice.filter(ev => {
-                    const evT = new Date(ev.eventStart).getTime();
-                    return evT >= (tStart - toleranceMs) && evT <= (tStop + toleranceMs);
+                const segments = buildSegments(t, quickStops).map(seg => {
+                    const events = camEventsForDevice.filter(ev => {
+                        const evT = new Date(ev.eventStart).getTime();
+                        return evT >= (seg.from - toleranceMs) && evT <= (seg.to + toleranceMs);
+                    });
+                    return { from: seg.from, to: seg.to, events: events, occupied: events.length > 0 };
                 });
 
+                const allEvents = segments.reduce((acc, s) => acc.concat(s.events), []);
+                const hasPassenger = segments.some(s => s.occupied);
+
                 let nearestGapMin = null;
-                if (events.length === 0 && camEventsForDevice.length > 0) {
+                if (!hasPassenger && camEventsForDevice.length > 0) {
+                    const tStart = new Date(t.start || t.startTime).getTime();
+                    const tStop = new Date(t.stop || t.stopTime).getTime();
                     const tMid = (tStart + tStop) / 2;
                     const gaps = camEventsForDevice.map(ev => Math.abs(new Date(ev.eventStart).getTime() - tMid));
                     nearestGapMin = Math.round(Math.min(...gaps) / 60000);
                 }
 
-                return { trip: t, events: events, hasPassenger: events.length > 0, nearestGapMin: nearestGapMin };
+                return { trip: t, segments: segments, events: allEvents, hasPassenger: hasPassenger, nearestGapMin: nearestGapMin };
             });
 
-            log('Cruce trip por trip (rango exacto usado, con tolerancia ya aplicada):\n' +
+            log('Cruce por sub-segmentos (cada Trip troceado en las paradas rápidas que contiene):\n' +
                 enriched.map(e => {
                     const tStart = new Date(e.trip.start || e.trip.startTime);
                     const tStop = new Date(e.trip.stop || e.trip.stopTime);
-                    return `  [${tStart.toISOString()} a ${tStop.toISOString()}] → ${e.events.length} evento(s) dentro`;
+                    const segLines = e.segments.map(s =>
+                        `      seg [${new Date(s.from).toISOString()} a ${new Date(s.to).toISOString()}] → ${s.events.length} evento(s) ${s.occupied ? '🎥 OCUPADO' : ''}`
+                    ).join('\n');
+                    return `  Trip [${tStart.toISOString()} a ${tStop.toISOString()}] — ${e.segments.length} sub-segmento(s):\n${segLines}`;
                 }).join('\n'));
 
             const noMatchSummary = enriched
